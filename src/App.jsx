@@ -1,0 +1,1015 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { supabase, isConfigured } from "./supabaseClient";
+
+/* ============================================================
+   מי ומה — לוח פיקסלים פרסומי · ₪1 לפיקסל · 1,000,000 לעמוד
+   ============================================================ */
+
+const GRID = 1000, SNAP = 10, PRICE = 1, BUCKET = "ad-images";
+
+/* >>> ערכי את פרטי הקשר שלך כאן <<< */
+const CONTACT = { email: "info@example.com", phone: "050-0000000", company: "מי ומה" };
+
+const CATEGORIES = [
+  { id: "realestate", name: 'נדל"ן',           icon: "🏠", color: "#E8553B" },
+  { id: "auto",       name: "רכב",             icon: "🚗", color: "#2F6FED" },
+  { id: "food",       name: "מזון",            icon: "🍔", color: "#F2A007" },
+  { id: "pharm",      name: "פארם & ביוטי",    icon: "💄", color: "#E0489B" },
+  { id: "cellular",   name: "סלולרי",          icon: "📱", color: "#16A38A" },
+  { id: "vacation",   name: "חופשה",           icon: "✈️", color: "#1FA6D6" },
+  { id: "fashion",    name: "אופנה",           icon: "👗", color: "#8B5CF6" },
+  { id: "jobs",       name: "דרושים",          icon: "💼", color: "#475569" },
+  { id: "courses",    name: "קורסים ולימודים", icon: "🎓", color: "#0EA5A0" },
+  { id: "celebs",     name: "מפורסמים",        icon: "⭐", color: "#CA8A04" },
+  { id: "finance",    name: "פיננסים וביטוח",  icon: "📊", color: "#1E7A46" },
+];
+const catById = (id) => CATEGORIES.find((c) => c.id === id);
+
+const PACKAGES = [
+  { pixels: 100, w: 10, h: 10 }, { pixels: 200, w: 20, h: 10 }, { pixels: 500, w: 50, h: 10 },
+  { pixels: 1000, w: 50, h: 20 }, { pixels: 2500, w: 50, h: 50 }, { pixels: 5000, w: 100, h: 50 },
+  { pixels: 10000, w: 100, h: 100 },
+];
+
+const nis = (n) => "₪" + Number(n || 0).toLocaleString("he-IL");
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("he-IL") : "—");
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const addYears = (d, n) => { const x = new Date(d); x.setFullYear(x.getFullYear() + n); return x; };
+
+/* בטיחות קישור */
+const SHORTENERS = ["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "cutt.ly", "rb.gy", "shorturl.at"];
+const RISKY_TLD = [".zip", ".mov", ".xyz", ".top", ".click", ".country", ".gq", ".tk", ".ml"];
+const BAD_WORDS = ["porn", "sex", "casino", "xxx", "viagra", "הימור", "פורנו"];
+function checkLink(raw) {
+  let url; try { url = new URL(raw); } catch { return { ok: false, flags: ["כתובת לא תקינה"] }; }
+  if (!["http:", "https:"].includes(url.protocol)) return { ok: false, flags: ["פרוטוקול אסור"] };
+  const flags = [], host = url.hostname.toLowerCase();
+  if (raw.includes("@")) flags.push("סימן @ בכתובת");
+  if (host.startsWith("xn--")) flags.push("punycode");
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) flags.push("כתובת IP");
+  if (SHORTENERS.includes(host)) flags.push("מקצר כתובות");
+  if (RISKY_TLD.some((t) => host.endsWith(t))) flags.push("סיומת בסיכון");
+  if (raw.length > 180) flags.push("כתובת ארוכה");
+  if (BAD_WORDS.some((w) => raw.toLowerCase().includes(w))) flags.push("מילה חסומה");
+  return { ok: true, flags };
+}
+const checkText = (t = "") => BAD_WORDS.filter((w) => t.toLowerCase().includes(w));
+
+function waNumber(phone) {
+  let d = (phone || "").replace(/\D/g, "");
+  if (d.startsWith("972")) return d;
+  if (d.startsWith("0")) return "972" + d.slice(1);
+  return d;
+}
+
+function compressImage(file, w, h) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = 6, cw = Math.min(Math.round(w * scale), 480), ch = Math.min(Math.round(h * scale), 480);
+      const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+      const ctx = c.getContext("2d"), ar = img.width / img.height, car = cw / ch;
+      let sx, sy, sw, sh;
+      if (ar > car) { sh = img.height; sw = sh * car; sx = (img.width - sw) / 2; sy = 0; }
+      else { sw = img.width; sh = sw / car; sx = 0; sy = (img.height - sh) / 2; }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+      URL.revokeObjectURL(url);
+      c.toBlob((b) => (b ? res(b) : rej(new Error("blob"))), "image/jpeg", 0.72);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("img")); };
+    img.src = url;
+  });
+}
+async function uploadImage(blob) {
+  const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+  const up = await supabase.storage.from(BUCKET).upload(name, blob, { contentType: "image/jpeg" });
+  if (up.error) throw up.error;
+  return supabase.storage.from(BUCKET).getPublicUrl(name).data.publicUrl;
+}
+async function deleteImageByUrl(url) {
+  if (!url) return;
+  const path = url.split(`/${BUCKET}/`)[1];
+  if (path) await supabase.storage.from(BUCKET).remove([path]);
+}
+
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+function fits(cand, ads) {
+  if (cand.x < 0 || cand.y < 0 || cand.x + cand.w > GRID || cand.y + cand.h > GRID) return false;
+  return !ads.some((a) => overlap(cand, a));
+}
+function findFreeSlot(w, h, ads) {
+  for (let y = 0; y <= GRID - h; y += SNAP)
+    for (let x = 0; x <= GRID - w; x += SNAP)
+      if (fits({ x, y, w, h }, ads)) return { x, y };
+  return null;
+}
+
+async function fetchBoardAds() {
+  const { data, error } = await supabase.from("public_ads")
+    .select("id,category,x,y,w,h,pixels,title,link,image_url,status");
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+const hasUpdate = (a) => a.pending_title != null || a.pending_link != null || a.pending_image_url != null;
+
+/* ============================================================ */
+export default function App() {
+  const [view, setView] = useState("home");
+  const [cat, setCat] = useState(null);
+  const [boardAds, setBoardAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const reload = useCallback(async () => {
+    if (!isConfigured) { setLoading(false); return; }
+    setBoardAds(await fetchBoardAds());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isConfigured) { setLoading(false); return; }
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setView("reset");
+    });
+    reload();
+    return () => sub.subscription.unsubscribe();
+  }, [reload]);
+
+  useEffect(() => {
+    if (!session) { setIsAdmin(false); return; }
+    supabase.rpc("is_admin").then(({ data }) => setIsAdmin(Boolean(data)));
+  }, [session]);
+
+  if (!isConfigured) return <Shell><SetupNeeded /></Shell>;
+
+  const nav = {
+    onHome: () => setView("home"),
+    onTerms: () => setView("terms"),
+    onPrivacy: () => setView("privacy"),
+    onContact: () => setView("contact"),
+    onAccount: () => setView(session ? "account" : "auth"),
+    onAdmin: () => setView("admin"),
+    onAuth: () => setView("auth"),
+    onLogout: () => supabase.auth.signOut().then(() => setView("home")),
+  };
+
+  return (
+    <Shell nav={nav} session={session} isAdmin={isAdmin}>
+      {loading ? <div className="center pad"><div className="spin" /></div>
+        : view === "reset" ? <ResetPassword onDone={() => setView("home")} />
+        : view === "auth" ? <AuthPage onAuthed={() => setView("account")} />
+        : view === "terms" ? <Terms />
+        : view === "privacy" ? <Privacy />
+        : view === "contact" ? <Contact />
+        : view === "account" ? (session ? <Account session={session} onChange={reload} /> : <AuthPage onAuthed={() => setView("account")} />)
+        : view === "admin" ? <Admin session={session} isAdmin={isAdmin} onAuth={() => setView("auth")} />
+        : view === "home" ? <Home ads={boardAds} onPick={(c) => { setCat(c); setView("board"); }} />
+        : <Board cat={cat} ads={boardAds} session={session} onChange={reload} />}
+    </Shell>
+  );
+}
+
+function Shell({ children, nav = {}, session, isAdmin }) {
+  return (
+    <div className="wm">
+      <header className="hd">
+        <button className="brand" onClick={nav.onHome}><span className="logo">מי<em>ו</em>מה</span></button>
+        <nav>
+          <button className="ghost" onClick={nav.onHome}>קטגוריות</button>
+          {isAdmin && <button className="ghost" onClick={nav.onAdmin}>ניהול</button>}
+          {session ? <>
+            <button className="ghost" onClick={nav.onAccount}>האזור שלי</button>
+            <button className="ghost" onClick={nav.onLogout}>יציאה</button>
+          </> : <button className="ghost solid" onClick={nav.onAuth}>התחברות</button>}
+        </nav>
+      </header>
+      {children}
+      <footer className="ft">
+        <div className="ft-links">
+          <button onClick={nav.onTerms}>תנאי שימוש</button><span>·</span>
+          <button onClick={nav.onPrivacy}>מדיניות פרטיות</button><span>·</span>
+          <button onClick={nav.onContact}>צור קשר</button>
+        </div>
+        <p><strong>מי ומה</strong> · ₪1 לפיקסל · תוקף מודעה: שנה לפחות · כל מודעה וכל עדכון עוברים אישור.</p>
+      </footer>
+    </div>
+  );
+}
+
+function SetupNeeded() {
+  return (
+    <div className="center pad"><div className="card narrow">
+      <h3>צריך לחבר את Supabase</h3>
+      <pre className="code-block">VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...</pre>
+      <p className="tiny muted">פרטים מלאים ב-README.md.</p>
+    </div></div>
+  );
+}
+
+/* ----------------------- אימות ----------------------- */
+function AuthForm({ onAuthed, compact }) {
+  const [mode, setMode] = useState("login"); // login | signup | forgot
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const go = async () => {
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error; onAuthed?.();
+      } else if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({ email, password: pass });
+        if (error) throw error;
+        if (data.session) onAuthed?.();
+        else setMsg("נשלח אליך מייל לאישור החשבון. אשרי אותו ואז התחברי.");
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        if (error) throw error;
+        setMsg("אם הכתובת קיימת — נשלח אליה מייל לאיפוס סיסמה.");
+      }
+    } catch (e) {
+      setErr(e.message === "Invalid login credentials" ? "אימייל או סיסמה שגויים" : (e.message || "שגיאה"));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className={compact ? "" : "card narrow"}>
+      <h3>{mode === "login" ? "התחברות" : mode === "signup" ? "פתיחת חשבון" : "שחזור סיסמה"}</h3>
+      {mode === "signup" && <p className="tiny muted">פותחים חשבון כדי לפרסם ולנהל מודעות.</p>}
+      <label className="fl">אימייל<input value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" type="email" /></label>
+      {mode !== "forgot" && (
+        <label className="fl">סיסמה<input value={pass} onChange={(e) => setPass(e.target.value)} dir="ltr" type="password"
+          onKeyDown={(e) => e.key === "Enter" && go()} /></label>
+      )}
+      {err && <div className="warn err">{err}</div>}
+      {msg && <div className="warn ok-box">{msg}</div>}
+      <button className="cta dark" disabled={busy} onClick={go}>
+        {busy ? "..." : mode === "login" ? "כניסה" : mode === "signup" ? "הרשמה" : "שלח/י מייל איפוס"}
+      </button>
+      <div className="auth-links">
+        {mode === "login" && <>
+          <button onClick={() => setMode("signup")}>אין לך חשבון? הרשמה</button>
+          <button onClick={() => setMode("forgot")}>שכחת סיסמה?</button>
+        </>}
+        {mode === "signup" && <button onClick={() => setMode("login")}>יש לך חשבון? התחברות</button>}
+        {mode === "forgot" && <button onClick={() => setMode("login")}>חזרה להתחברות</button>}
+      </div>
+    </div>
+  );
+}
+
+function AuthPage({ onAuthed }) {
+  return <main className="center pad"><AuthForm onAuthed={onAuthed} /></main>;
+}
+
+function ResetPassword({ onDone }) {
+  const [pass, setPass] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState(false);
+  const save = async () => {
+    if (pass.length < 6) return setErr("סיסמה של 6 תווים לפחות.");
+    setBusy(true); setErr("");
+    const { error } = await supabase.auth.updateUser({ password: pass });
+    setBusy(false);
+    if (error) setErr(error.message); else setOk(true);
+  };
+  return (
+    <main className="center pad"><div className="card narrow">
+      <h3>בחירת סיסמה חדשה</h3>
+      {ok ? <>
+        <div className="warn ok-box">הסיסמה עודכנה ✅</div>
+        <button className="cta dark" onClick={onDone}>המשך</button>
+      </> : <>
+        <label className="fl">סיסמה חדשה<input value={pass} onChange={(e) => setPass(e.target.value)} dir="ltr" type="password" /></label>
+        {err && <div className="warn err">{err}</div>}
+        <button className="cta dark" disabled={busy} onClick={save}>{busy ? "..." : "שמירה"}</button>
+      </>}
+    </div></main>
+  );
+}
+
+/* ----------------------- בית ----------------------- */
+function Home({ ads, onPick }) {
+  const live = ads.filter((a) => a.status === "live");
+  const totalSold = live.reduce((s, a) => s + a.pixels, 0);
+  return (
+    <main>
+      <section className="hero">
+        <p className="eyebrow">לוח הפרסום בפיקסלים של ישראל</p>
+        <h1>קונים מקום.<br /><span className="hl">משאירים חותם.</span></h1>
+        <p className="sub">בוחרים קטגוריה, קונים בלוק פיקסלים, מעלים תמונה וקישור. ₪1 לכל פיקסל.</p>
+        <div className="stats">
+          <div><b>{nis(totalSold)}</b><span>פיקסלים נמכרו</span></div>
+          <div><b>{CATEGORIES.length}</b><span>קטגוריות</span></div>
+          <div><b>1,000,000</b><span>פיקסלים לעמוד</span></div>
+        </div>
+      </section>
+      <section className="cats">
+        {CATEGORIES.map((c) => {
+          const sold = live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0);
+          const pct = Math.min(100, (sold / 1_000_000) * 100);
+          return (
+            <button key={c.id} className="cat" onClick={() => onPick(c)}>
+              <span className="cat-ic" style={{ background: c.color + "1A", color: c.color }}>{c.icon}</span>
+              <span className="cat-name">{c.name}</span>
+              <span className="bar"><i style={{ width: pct + "%", background: c.color }} /></span>
+              <span className="cat-meta">{pct.toFixed(pct < 1 ? 2 : 1)}% מלא · {nis(sold)}</span>
+            </button>
+          );
+        })}
+      </section>
+    </main>
+  );
+}
+
+/* ----------------------- פסיפס מקומות פנויים ----------------------- */
+const PASTELS = ["#FBD5D5", "#FCE8C9", "#FAF3C5", "#D9F2D6", "#CCEFE7", "#CFE2FB", "#E2D8FB", "#F7D8EC", "#FBDCC6", "#D6EEF8"];
+const CELLS = 100; // 100x100 תאים (תא = 100 פיקסל)
+
+const SLOT_PATTERNS = [
+  { w: 1, r: [[0, 0, 10, 10]] },
+  { w: 2, r: [[0, 0, 10, 5], [0, 5, 10, 5]] },
+  { w: 2, r: [[0, 0, 5, 10], [5, 0, 5, 10]] },
+  { w: 4, r: [[0, 0, 5, 5], [5, 0, 5, 5], [0, 5, 5, 5], [5, 5, 5, 5]] },
+  { w: 3, r: [[0, 0, 10, 5], [0, 5, 5, 5], [5, 5, 5, 5]] },
+  { w: 3, r: [[0, 0, 5, 5], [5, 0, 5, 5], [0, 5, 10, 5]] },
+  { w: 2, r: [[0, 0, 5, 10], [5, 0, 5, 2], [5, 2, 5, 2], [5, 4, 5, 2], [5, 6, 5, 2], [5, 8, 5, 2]] },
+  { w: 2, r: [[0, 0, 5, 5], [5, 0, 5, 5], [0, 5, 5, 5], [5, 5, 5, 2], [5, 7, 5, 2], [5, 9, 5, 1]] },
+  { w: 1, r: [[0, 0, 10, 5], [0, 5, 5, 5], [5, 5, 5, 1], [5, 6, 5, 1], [5, 7, 5, 1], [5, 8, 5, 1], [5, 9, 5, 1]] },
+  { w: 2, r: [[0, 0, 2, 1], [2, 0, 2, 1], [4, 0, 1, 1], [0, 1, 2, 1], [2, 1, 2, 1], [4, 1, 1, 1], [0, 2, 5, 1], [0, 3, 2, 1], [2, 3, 2, 1], [4, 3, 1, 1], [0, 4, 5, 1], [5, 0, 5, 5], [0, 5, 10, 5]] },
+  { w: 1, r: [[0, 0, 2, 1], [2, 0, 2, 1], [4, 0, 2, 1], [6, 0, 2, 1], [8, 0, 2, 1], [0, 1, 2, 1], [2, 1, 2, 1], [4, 1, 2, 1], [6, 1, 2, 1], [8, 1, 2, 1], [0, 2, 5, 1], [5, 2, 5, 1], [0, 3, 1, 1], [1, 3, 1, 1], [2, 3, 1, 1], [3, 3, 1, 1], [4, 3, 1, 1], [5, 3, 1, 1], [6, 3, 1, 1], [7, 3, 1, 1], [8, 3, 1, 1], [9, 3, 1, 1], [0, 4, 2, 1], [2, 4, 2, 1], [4, 4, 2, 1], [6, 4, 2, 1], [8, 4, 2, 1], [0, 5, 5, 5], [5, 5, 5, 5]] },
+];
+
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// פסיפס נקי: 10x10 בלוקי-על, לכל אחד תבנית חלוקה (גדלים 500–10,000)
+function generateSlots(catId) {
+  const rng = mulberry32(hashStr(catId));
+  const totW = SLOT_PATTERNS.reduce((t, p) => t + p.w, 0);
+  const slots = [];
+  for (let my = 0; my < 10; my++) for (let mx = 0; mx < 10; mx++) {
+    let r = rng() * totW, pat = SLOT_PATTERNS[0];
+    for (const p of SLOT_PATTERNS) { r -= p.w; if (r <= 0) { pat = p; break; } }
+    pat.r.forEach(([cx, cy, cw, ch], idx) => {
+      slots.push({ id: `${mx}-${my}-${idx}`, x: (mx * 10 + cx) * 10, y: (my * 10 + cy) * 10, w: cw * 10, h: ch * 10, pixels: cw * ch * 100 });
+    });
+  }
+  return slots;
+}
+/* ----------------------- זום ופאן ללוח ----------------------- */
+function ZoomBoard({ color, children }) {
+  const vp = useRef(null);
+  const [z, setZ] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const ptrs = useRef(new Map());
+  const pinch = useRef(null);
+  const drag = useRef(null);
+  const moved = useRef(false);
+  const MAX = 14;
+
+  const clampPan = (p, zz) => {
+    const r = vp.current.getBoundingClientRect();
+    const minX = r.width - r.width * zz, minY = r.height - r.height * zz;
+    return { x: Math.min(0, Math.max(minX, p.x)), y: Math.min(0, Math.max(minY, p.y)) };
+  };
+  const zoomTo = (z2, fx, fy) => {
+    z2 = Math.min(MAX, Math.max(1, z2));
+    setPan((prev) => (z2 === 1 ? { x: 0, y: 0 }
+      : clampPan({ x: fx - (fx - prev.x) * (z2 / z), y: fy - (fy - prev.y) * (z2 / z) }, z2)));
+    setZ(z2);
+  };
+  const center = (f) => { const r = vp.current.getBoundingClientRect(); zoomTo(z * f, r.width / 2, r.height / 2); };
+
+  const onWheel = (e) => {
+    e.preventDefault();
+    const r = vp.current.getBoundingClientRect();
+    zoomTo(z * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX - r.left, e.clientY - r.top);
+  };
+  const onPointerDown = (e) => {
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    moved.current = false;
+    if (ptrs.current.size === 2) {
+      const [a, b] = [...ptrs.current.values()];
+      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z };
+      drag.current = null;
+    } else if (z > 1) {
+      drag.current = { px: e.clientX, py: e.clientY, pan: { ...pan }, cap: false };
+    }
+  };
+  const onPointerMove = (e) => {
+    if (!ptrs.current.has(e.pointerId)) return;
+    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const r = vp.current.getBoundingClientRect();
+    if (ptrs.current.size >= 2 && pinch.current) {
+      const [a, b] = [...ptrs.current.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      moved.current = true;
+      zoomTo(pinch.current.z * (d / pinch.current.d), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+    } else if (drag.current) {
+      const dx = e.clientX - drag.current.px, dy = e.clientY - drag.current.py;
+      if (!drag.current.cap && Math.abs(dx) + Math.abs(dy) > 6) {
+        drag.current.cap = true; moved.current = true;
+        try { vp.current.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      if (drag.current.cap) setPan(clampPan({ x: drag.current.pan.x + dx, y: drag.current.pan.y + dy }, z));
+    }
+  };
+  const onPointerUp = (e) => {
+    ptrs.current.delete(e.pointerId);
+    if (ptrs.current.size < 2) pinch.current = null;
+    if (ptrs.current.size === 0) drag.current = null;
+  };
+  const onClickCapture = (e) => { if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; } };
+
+  return (
+    <div className={"board-viewport" + (z > 1 ? " pan" : "")} ref={vp} style={{ borderColor: color + "55" }}
+      onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onClickCapture={onClickCapture}>
+      <div className="board big zoomable" style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${z})` }}>
+        {children}
+      </div>
+      <div className="zoom-ctrl">
+        <button onClick={() => center(1.6)} aria-label="הגדלה">+</button>
+        <button onClick={() => center(1 / 1.6)} aria-label="הקטנה">−</button>
+        {z > 1 && <button className="rst" onClick={() => { setZ(1); setPan({ x: 0, y: 0 }); }} aria-label="איפוס תצוגה">⤢</button>}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------- לוח קטגוריה ----------------------- */
+function Board({ cat, ads, session, onChange }) {
+  const catAds = ads.filter((a) => a.category === cat.id);
+  const slots = useMemo(() => generateSlots(cat.id), [cat.id]);
+  const live = catAds.filter((a) => a.status === "live");
+  const sold = live.reduce((s, a) => s + a.pixels, 0);
+  const pct = (sold / 1_000_000) * 100;
+  const [buying, setBuying] = useState(null);
+
+  const adAt = (slot) => catAds.find((a) => a.x === slot.x && a.y === slot.y);
+
+  return (
+    <main className="board-wrap">
+      <div className="board-head">
+        <div>
+          <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name}</h2>
+          <p className="muted">{nis(sold)} מתוך {nis(1_000_000)} פיקסלים · {pct.toFixed(2)}% מלא · בחר/י משבצת פנויה</p>
+        </div>
+      </div>
+
+      <div className="board-tip-row">
+        <p className="board-tip tiny muted">לוחצים על משבצת פנויה → מעלים תמונה. צוֹבטים/גלגלת לזום, גרירה להזזה. הקווים הדקים = פיקסלים (תא = 100 פיקסלים).</p>
+      </div>
+
+      <ZoomBoard color={cat.color}>
+        {slots.map((slot, i) => {
+          const ad = adAt(slot);
+          if (ad) {
+            return (
+              <a key={slot.id} className={"ad " + (ad.status !== "live" ? "pend" : "")}
+                href={ad.status === "live" ? ad.link : undefined}
+                target="_blank" rel="noopener noreferrer nofollow"
+                onClick={(e) => { if (ad.status !== "live") e.preventDefault(); }}
+                title={ad.title}
+                style={{ left: (slot.x / GRID) * 100 + "%", top: (slot.y / GRID) * 100 + "%",
+                  width: (slot.w / GRID) * 100 + "%", height: (slot.h / GRID) * 100 + "%",
+                  background: ad.image_url ? undefined : cat.color }}>
+                {ad.image_url ? <img src={ad.image_url} alt={ad.title} /> : <span className="ad-lbl">{ad.title}</span>}
+              </a>
+            );
+          }
+          const big = slot.pixels >= 5000, mid = slot.pixels >= 1000, sm = slot.pixels >= 500;
+          return (
+            <button key={slot.id} className="slot" onClick={() => setBuying(slot)}
+              title={`${slot.pixels.toLocaleString("he-IL")} פיקסלים · ${nis(slot.pixels)}`}
+              style={{ left: (slot.x / GRID) * 100 + "%", top: (slot.y / GRID) * 100 + "%",
+                width: (slot.w / GRID) * 100 + "%", height: (slot.h / GRID) * 100 + "%",
+                background: PASTELS[i % PASTELS.length] }}>
+              {big ? (
+                <span className="slot-lbl">
+                  <b>אבחר מקום כאן</b>
+                  <span>{slot.pixels.toLocaleString("he-IL")} פיקסלים</span>
+                  <em>{nis(slot.pixels)} · ₪1/פיקסל</em>
+                </span>
+              ) : mid ? (
+                <span className="slot-lbl sm"><b>{slot.pixels.toLocaleString("he-IL")} פיקס׳</b><em>{nis(slot.pixels)}</em></span>
+              ) : sm ? (
+                <span className="slot-lbl xs">{nis(slot.pixels)}</span>
+              ) : <span className="slot-dot">+</span>}
+            </button>
+          );
+        })}
+        <div className="grid-overlay" />
+      </ZoomBoard>
+
+      {buying && (
+        <SlotBuyModal slot={buying} cat={cat} session={session} ads={catAds}
+          onClose={() => setBuying(null)} onDone={() => { setBuying(null); onChange(); }} />
+      )}
+    </main>
+  );
+}
+
+/* ----------------------- קניית משבצת ----------------------- */
+function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
+  const [title, setTitle] = useState("");
+  const [link, setLink] = useState("https://");
+  const [phone, setPhone] = useState("");
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [fileKey, setFileKey] = useState(0);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const linkCheck = link.length > 9 ? checkLink(link) : null;
+  const price = slot.pixels * PRICE;
+  const taken = ads.some((a) => a.x === slot.x && a.y === slot.y);
+
+  const onFile = (e) => {
+    const f = e.target.files?.[0]; if (!f) return; setErr("");
+    if (!f.type.startsWith("image/")) return setErr("צריך קובץ תמונה.");
+    if (f.size > 10 * 1024 * 1024) return setErr("עד 10MB.");
+    setFile(f); setPreview(URL.createObjectURL(f));
+  };
+  const removeFile = () => { if (preview) URL.revokeObjectURL(preview); setFile(null); setPreview(null); setFileKey((k) => k + 1); };
+
+  const submit = async () => {
+    if (!session) return alert("צריך להתחבר כדי לפרסם.");
+    if (taken) return alert("המקום נתפס בינתיים. בחר/י משבצת אחרת.");
+    if (!file) return alert("צריך להעלות תמונה.");
+    if (!linkCheck?.ok) return alert("הקישור אינו תקין.");
+    if (waNumber(phone).length < 11) return alert("מספר טלפון לא תקין.");
+    setBusy(true);
+    try {
+      const image_url = await uploadImage(await compressImage(file, slot.w, slot.h));
+      const flags = [...(linkCheck.flags || []), ...checkText(title).map((w) => "מילה חסומה: " + w)];
+      const { error } = await supabase.from("ads").insert({
+        owner_id: session.user.id, category: cat.id, x: slot.x, y: slot.y, w: slot.w, h: slot.h,
+        pixels: slot.pixels, title: title.trim() || cat.name, link, phone, image_url, status: "pending", flags,
+      });
+      if (error) throw error;
+      setSent(true);
+    } catch (e) { console.error(e); alert("שגיאה: " + (e.message || "נסה שוב")); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-x" onClick={onClose} aria-label="סגירה">×</button>
+        {sent ? (
+          <div style={{ textAlign: "center" }}>
+            <h3>נשלח לאישור! ✅</h3>
+            <p className="muted">ניצור איתך קשר בוואטסאפ עם קישור לתשלום של {nis(price)}.</p>
+            <div className="warn ok-box">אפשר לעקוב, לערוך או לבטל בלשונית ״האזור שלי״.</div>
+            <button className="cta dark" onClick={onDone}>סיום</button>
+          </div>
+        ) : (<>
+          <h3 style={{ color: cat.color }}>{cat.icon} {cat.name}</h3>
+          <div className="slot-summary">
+            <b>{slot.pixels.toLocaleString("he-IL")} פיקסלים</b>
+            <span className="tiny muted">{slot.w}×{slot.h} · ₪1 לפיקסל</span>
+            <em>{nis(price)}</em>
+          </div>
+
+          {!session && (
+            <div className="gate">
+              <div className="warn ok-box">כדי לפרסם צריך חשבון — התחברי או הרשמי:</div>
+              <AuthForm compact onAuthed={() => {}} />
+              <hr className="sep" />
+            </div>
+          )}
+
+          <label className="fl">כותרת קצרה
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={40} placeholder="לדוגמה: דירות חדשות בחיפה" /></label>
+          <label className="fl">קישור
+            <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." dir="ltr" /></label>
+          {linkCheck && !linkCheck.ok && <div className="warn err">⛔ {linkCheck.flags.join(" · ")}</div>}
+          {linkCheck?.ok && linkCheck.flags.length > 0 && <div className="warn">⚠️ לבדיקה: {linkCheck.flags.join(" · ")}</div>}
+          <label className="fl">טלפון (וואטסאפ — לתיאום תשלום)
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-0000000" dir="ltr" inputMode="tel" /></label>
+          <label className="fl">תמונה (תיכווץ ל-{slot.w}×{slot.h})
+            <input key={fileKey} type="file" accept="image/*" onChange={onFile} /></label>
+          {err && <div className="warn err">{err}</div>}
+          {preview && <div className="preview">
+            <img src={preview} alt="תצוגה" style={{ aspectRatio: slot.w / slot.h }} />
+            <button type="button" className="img-remove" onClick={removeFile}>הסר ובחר תמונה אחרת</button>
+          </div>}
+
+          <div className="row2">
+            <button className="btn-line ghost2" onClick={onClose}>ביטול</button>
+            <button className="cta" style={{ background: cat.color }} disabled={busy || !session || !file || !linkCheck?.ok} onClick={submit}>
+              {busy ? "שולח..." : "שליחה לאישור · " + nis(price)}
+            </button>
+          </div>
+        </>)}
+      </div>
+    </div>
+  );
+}
+/* ----------------------- האזור שלי (מפרסם) ----------------------- */
+function Account({ session, onChange }) {
+  const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("ads").select("*")
+      .eq("owner_id", session.user.id).order("created_at", { ascending: false });
+    setAds(data || []); setLoading(false);
+  }, [session]);
+  useEffect(() => { load(); }, [load]);
+
+  const remove = async (a) => {
+    if (!confirm(`להסיר את המודעה "${a.title}"? המקום יתפנה ולא ניתן לשחזר.\n(החזר כספי אפשרי רק עד 14 יום מההזמנה.)`)) return;
+    await supabase.rpc("remove_own_ad", { p_ad_id: a.id });
+    load(); onChange?.();
+  };
+
+  if (editing) return <EditAd ad={editing} onDone={() => { setEditing(null); load(); }} />;
+
+  const labelOf = (a) => a.status === "live" ? "באוויר" : a.status === "pending" ? "בבדיקה"
+    : a.status === "awaiting_payment" ? "ממתין לתשלום" : a.status === "removed" ? "הוסרה" : a.status;
+
+  return (
+    <main className="account">
+      <div className="board-head"><h2>האזור שלי</h2>
+        <span className="tiny muted" dir="ltr">{session.user.email}</span></div>
+
+      {loading ? <div className="center pad"><div className="spin" /></div>
+        : ads.length === 0 ? <div className="card narrow center"><p className="muted">עוד אין לך מודעות. בחר/י קטגוריה כדי לפרסם.</p></div>
+        : (
+          <div className="my-list">
+            {ads.map((a) => {
+              const c = catById(a.category);
+              const validUntil = a.published_at ? addYears(a.published_at, 1) : null;
+              const refundUntil = addDays(a.created_at, 14);
+              const refundable = new Date() < refundUntil && a.status !== "removed";
+              return (
+                <div className="my-card" key={a.id}>
+                  <div className="my-img" style={{ aspectRatio: a.w / a.h }}>
+                    {a.image_url ? <img src={a.image_url} alt="" /> : <span className="ad-lbl">{a.title}</span>}
+                  </div>
+                  <div className="my-body">
+                    <div className="my-top">
+                      <b>{a.title}</b>
+                      <span className={"chip " + a.status}>{labelOf(a)}</span>
+                    </div>
+                    <span className="tiny muted">{c?.icon} {c?.name} · {a.pixels.toLocaleString("he-IL")} פיקסל · {nis(a.pixels)}</span>
+                    {a.status === "live" && <span className="tiny muted">בתוקף עד {fmtDate(validUntil)}</span>}
+                    {a.status !== "removed" && (
+                      <span className={"tiny " + (refundable ? "ok-text" : "muted")}>
+                        {refundable ? `ניתן לביטול בהחזר עד ${fmtDate(refundUntil)}` : "חלון הביטול (14 יום) הסתיים"}
+                      </span>
+                    )}
+                    {hasUpdate(a) && <span className="tiny accent">יש עדכון שממתין לאישור</span>}
+                  </div>
+                  {a.status !== "removed" && (
+                    <div className="my-act">
+                      <button className="ok" onClick={() => setEditing(a)}>עריכה</button>
+                      <button className="no" onClick={() => remove(a)}>הסרה</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+    </main>
+  );
+}
+
+/* ----------------------- עריכת מודעה (חוזר לאישור) ----------------------- */
+function EditAd({ ad, onDone }) {
+  const c = catById(ad.category);
+  const [title, setTitle] = useState(ad.title || "");
+  const [link, setLink] = useState(ad.link || "");
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [fileKey, setFileKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [done, setDone] = useState(false);
+
+  const linkCheck = link.length > 9 ? checkLink(link) : null;
+  const titleChanged = title.trim() && title.trim() !== (ad.title || "");
+  const linkChanged = link && link !== (ad.link || "");
+  const anyChange = titleChanged || linkChanged || file;
+
+  const onFile = (e) => {
+    const f = e.target.files?.[0]; if (!f) return; setErr("");
+    if (!f.type.startsWith("image/")) return setErr("צריך קובץ תמונה.");
+    if (f.size > 10 * 1024 * 1024) return setErr("עד 10MB.");
+    setFile(f); setPreview(URL.createObjectURL(f));
+  };
+  const removeFile = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null); setPreview(null); setFileKey((k) => k + 1);
+  };
+  const submit = async () => {
+    if (!anyChange) return alert("לא בוצע שינוי.");
+    if (linkChanged && !linkCheck?.ok) return alert("הקישור אינו תקין.");
+    setBusy(true);
+    try {
+      let image_url = null;
+      if (file) image_url = await uploadImage(await compressImage(file, ad.w, ad.h));
+      const { error } = await supabase.rpc("submit_ad_update", {
+        p_ad_id: ad.id, p_title: titleChanged ? title.trim() : null,
+        p_link: linkChanged ? link : null, p_image_url: image_url,
+      });
+      if (error) throw error; setDone(true);
+    } catch (e) { console.error(e); alert("שגיאה: " + (e.message || "נסה שוב")); }
+    finally { setBusy(false); }
+  };
+
+  if (done) return (
+    <main className="center pad"><div className="card narrow center">
+      <h3>השינוי נשלח לאישור ✅</h3>
+      <p className="muted">המודעה הנוכחית נשארת באתר עד שהשינוי יאושר.</p>
+      <button className="cta dark" onClick={onDone}>חזרה</button>
+    </div></main>
+  );
+
+  return (
+    <main className="board-wrap"><div className="card narrow">
+      <h3>עריכת מודעה · {c?.icon} {c?.name}</h3>
+      <p className="tiny muted">כל שינוי נשלח לאישור לפני שיתעדכן באתר.</p>
+      {hasUpdate(ad) && <div className="warn">כבר יש שינוי שממתין לאישור — שליחה חדשה תחליף אותו.</div>}
+      <div className="cur-ad"><span className="tiny muted">המודעה הנוכחית:</span>
+        <div className="cur-img" style={{ aspectRatio: ad.w / ad.h }}>
+          {ad.image_url ? <img src={ad.image_url} alt="" /> : <span className="ad-lbl">{ad.title}</span>}
+        </div>
+      </div>
+      <label className="fl">כותרת<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={40} /></label>
+      <label className="fl">קישור<input value={link} onChange={(e) => setLink(e.target.value)} dir="ltr" /></label>
+      {linkCheck && !linkCheck.ok && <div className="warn err">⛔ {linkCheck.flags.join(" · ")}</div>}
+      <label className="fl">החלפת תמונה (אופציונלי)<input key={fileKey} type="file" accept="image/*" onChange={onFile} /></label>
+      {err && <div className="warn err">{err}</div>}
+      {preview && <div className="preview">
+        <img src={preview} alt="" style={{ aspectRatio: ad.w / ad.h }} />
+        <button type="button" className="img-remove" onClick={removeFile}>הסר ובחר תמונה אחרת</button>
+      </div>}
+      <div className="row2">
+        <button className="btn-line ghost2" onClick={onDone}>ביטול</button>
+        <button className="cta dark" disabled={busy || !anyChange} onClick={submit}>{busy ? "שולח..." : "שליחת שינוי לאישור"}</button>
+      </div>
+    </div></main>
+  );
+}
+
+/* ----------------------- תנאי שימוש ----------------------- */
+function Terms() {
+  return (
+    <main className="doc">
+      <h1>תנאי שימוש</h1>
+      <p className="muted tiny">עודכן לאחרונה: יוני 2026 · יש להחליף את הפרטים בסוגריים המרובעים בפרטי העסק שלך.</p>
+
+      <h3>1. כללי</h3>
+      <p>אתר "מי ומה" (להלן: "האתר"), המופעל על ידי [שם העסק / ח.פ. / ע.מ.], הוא פלטפורמה לרכישת שטחי פרסום (פיקסלים) והצגת תמונה וקישור בהם. השימוש באתר מהווה הסכמה לתנאים אלה.</p>
+
+      <h3>2. אופי השירות</h3>
+      <p>האתר משמש כמתווך בלבד להצגת מודעות, ואינו צד לכל עסקה בין מפרסם לצד שלישי. האתר אינו אחראי לתוכן, לאמינות, למוצרים או לשירותים המופיעים במודעות.</p>
+
+      <h3>3. אחריות המפרסם</h3>
+      <p>המפרסם אחראי באופן בלעדי לתוכן המודעה, ומצהיר כי הוא חוקי, אינו מפר זכויות יוצרים, סימני מסחר או כל זכות של צד שלישי, ואינו מטעה. המפרסם נושא באחריות מלאה לכל נזק שייגרם כתוצאה מהמודעה.</p>
+
+      <h3>4. תכנים אסורים</h3>
+      <p>אסור להעלות תוכן פוגעני, מיני, אלים, מפלה, בלתי חוקי, מטעה, או קישורים זדוניים. [שם העסק] רשאי לסרב, להסיר או לערוך כל מודעה לפי שיקול דעתו הבלעדי וללא צורך בנימוק.</p>
+
+      <h3>5. אישור, תשלום ועדכונים</h3>
+      <p>כל מודעה וכל עדכון למודעה קיימת כפופים לאישור מראש. מודעה תפורסם רק לאחר אישור התוכן והשלמת התשלום במלואו. שינוי במודעה קיימת לא ייכנס לתוקף עד לאישורו, והמודעה הקודמת תמשיך להופיע עד אז.</p>
+
+      <h3>6. תוקף המודעה</h3>
+      <p>תוקף מודעה שפורסמה הוא <b>שנה אחת לפחות</b> ממועד פרסומה, אלא אם המפרסם בחר מרצונו להסיר את המודעה ולוותר על המקום. הסרה יזומה על ידי המפרסם משחררת את שטח הפרסום לאחרים.</p>
+
+      <h3>7. ביטול והחזר כספי</h3>
+      <p>ניתן לבטל את ההזמנה ולקבל החזר כספי <b>עד 14 יום ממועד ההזמנה</b>. לאחר 14 יום לא יינתן החזר. ביטול והחזר בכפוף לחוק הגנת הצרכן, התשמ"א-1981.</p>
+
+      <h3>8. הגבלת אחריות</h3>
+      <p>השירות ניתן כפי שהוא ("AS IS"). [שם העסק] לא יישא באחריות לכל נזק ישיר או עקיף שייגרם משימוש באתר או מהסתמכות על מודעות המופיעות בו.</p>
+
+      <h3>9. שיפוט</h3>
+      <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים ב[עיר].</p>
+
+      <p className="muted tiny doc-note">⚠️ מסמך זה הוא תבנית בסיסית ואינו ייעוץ משפטי. מומלץ שעו"ד יעבור עליו ויתאים אותו לעסק שלך לפני תחילת גבייה.</p>
+    </main>
+  );
+}
+
+/* ----------------------- מדיניות פרטיות ----------------------- */
+function Privacy() {
+  return (
+    <main className="doc">
+      <h1>מדיניות פרטיות</h1>
+      <p className="muted tiny">עודכן לאחרונה: יוני 2026 · יש להחליף את הפרטים בסוגריים המרובעים בפרטי העסק שלך.</p>
+
+      <h3>1. כללי</h3>
+      <p>מדיניות זו מסבירה כיצד אתר "מי ומה", המופעל על ידי [שם העסק / ח.פ.] (להלן: "אנחנו"), אוסף ומשתמש במידע אישי. אנו פועלים בהתאם לחוק הגנת הפרטיות, התשמ"א-1981. השימוש באתר מהווה הסכמה למדיניות זו.</p>
+
+      <h3>2. איזה מידע נאסף</h3>
+      <p>בעת פתיחת חשבון ופרסום מודעה נאספים: כתובת אימייל, מספר טלפון, ותוכן המודעה (תמונה, כותרת וקישור). כמו כן נאסף מידע טכני בסיסי הנדרש לתפעול האתר (כגון כתובת IP ונתוני התחברות).</p>
+
+      <h3>3. למה משתמשים במידע</h3>
+      <p>המידע משמש לניהול החשבון, להצגת המודעות באתר, ליצירת קשר לצורך אישור ותיאום תשלום (כולל בוואטסאפ), ולמתן תמיכה. לא נעשה שימוש במידע למטרות שלא פורטו כאן ללא הסכמתך.</p>
+
+      <h3>4. שיתוף עם צדדים שלישיים</h3>
+      <p>איננו מוכרים מידע אישי. המידע מאוחסן ומעובד אצל ספקי שירות הדרושים לתפעול האתר, ובהם [Supabase] (מסד נתונים ואחסון), [Vercel] (אירוח), ו-[Grow] (סליקת תשלומים). ספקים אלה כפופים להתחייבויות אבטחה ופרטיות. מידע עשוי להימסר אם נידרש לכך על פי דין.</p>
+
+      <h3>5. עוגיות ומידע טכני</h3>
+      <p>האתר עושה שימוש באמצעי אחסון בדפדפן הנדרשים לשמירת ההתחברות שלך ולתפעול תקין. אין שימוש בעוגיות פרסום או מעקב של צד שלישי.</p>
+
+      <h3>6. אבטחת מידע</h3>
+      <p>אנו נוקטים אמצעים סבירים להגנה על המידע, לרבות הצפנה ובקרת הרשאות. עם זאת, אין באפשרותנו להבטיח הגנה מוחלטת מפני כל סיכון.</p>
+
+      <h3>7. זכויותיך</h3>
+      <p>הנך זכאי לעיין במידע אודותיך, לתקנו או לבקש את מחיקתו. ניתן לערוך ולהסיר מודעות ישירות ב"האזור שלי", או לפנות אלינו בכל בקשה הנוגעת למידע האישי שלך.</p>
+
+      <h3>8. שמירת מידע</h3>
+      <p>אנו שומרים את המידע כל עוד החשבון פעיל וכנדרש לצרכים חוקיים, חשבונאיים ותפעוליים. לאחר מכן המידע יימחק או יונפק.</p>
+
+      <h3>9. יצירת קשר</h3>
+      <p>בכל שאלה בנושא פרטיות ניתן לפנות אל [{CONTACT.email}] או בטלפון [{CONTACT.phone}].</p>
+
+      <h3>10. שינויים</h3>
+      <p>אנו רשאים לעדכן מדיניות זו מעת לעת. הגרסה העדכנית תפורסם בעמוד זה.</p>
+
+      <p className="muted tiny doc-note">⚠️ מסמך זה הוא תבנית בסיסית ואינו ייעוץ משפטי. מומלץ שעו"ד יעבור עליו ויתאים אותו לעסק שלך ולדרישות הדין לפני תחילת הפעילות.</p>
+    </main>
+  );
+}
+
+/* ----------------------- צור קשר ----------------------- */
+function Contact() {
+  const wa = waNumber(CONTACT.phone);
+  return (
+    <main className="doc">
+      <h1>צור קשר</h1>
+      <p>יש שאלה על פרסום, תשלום או מודעה קיימת? נשמח לעזור.</p>
+      <div className="contact-card">
+        <div className="ci"><span>אימייל</span><a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a></div>
+        <div className="ci"><span>טלפון</span><a href={`tel:${CONTACT.phone}`} dir="ltr">{CONTACT.phone}</a></div>
+      </div>
+      <a className="cta wa-cta" href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">שלח/י הודעה בוואטסאפ</a>
+      <p className="tiny muted">לעריכה, ביטול ושחזור סיסמה — היכנס/י ל"האזור שלי".</p>
+    </main>
+  );
+}
+
+/* ----------------------- ניהול ----------------------- */
+function Admin({ session, isAdmin, onAuth }) {
+  if (!session) {
+    return <main className="center pad"><div className="card narrow center">
+      <h3>אזור ניהול</h3><p className="muted">צריך להתחבר עם חשבון המנהלת.</p>
+      <button className="cta dark" onClick={onAuth}>להתחברות</button></div></main>;
+  }
+  if (!isAdmin) {
+    return <main className="center pad"><div className="card narrow center">
+      <h3>אין הרשאת ניהול</h3>
+      <p className="muted">החשבון הזה אינו מוגדר כמנהל. ודאי שהאימייל קיים בטבלת admins ב-Supabase.</p></div></main>;
+  }
+  return <AdminQueue />;
+}
+
+function AdminQueue() {
+  const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("pending");
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("ads").select("*").order("created_at", { ascending: false });
+    setAds(data || []); setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const setStatus = async (a, status, extra = {}) => {
+    await supabase.from("ads").update({ status, ...extra }).eq("id", a.id); load();
+  };
+  const publish = (a) => setStatus(a, "live", a.published_at ? {} : { published_at: new Date().toISOString() });
+
+  const remove = async (a) => {
+    if (!confirm(`למחוק לצמיתות את "${a.title}"?`)) return;
+    await deleteImageByUrl(a.image_url); await deleteImageByUrl(a.pending_image_url);
+    await supabase.from("ads").delete().eq("id", a.id); load();
+  };
+  const approveUpdate = async (a) => {
+    const apply = { pending_title: null, pending_link: null, pending_image_url: null };
+    if (a.pending_title != null) apply.title = a.pending_title;
+    if (a.pending_link != null) apply.link = a.pending_link;
+    if (a.pending_image_url != null) apply.image_url = a.pending_image_url;
+    await supabase.from("ads").update(apply).eq("id", a.id);
+    if (a.pending_image_url && a.image_url && a.pending_image_url !== a.image_url) await deleteImageByUrl(a.image_url);
+    load();
+  };
+  const rejectUpdate = async (a) => {
+    await deleteImageByUrl(a.pending_image_url);
+    await supabase.from("ads").update({ pending_title: null, pending_link: null, pending_image_url: null }).eq("id", a.id);
+    load();
+  };
+  const whatsapp = (a) => {
+    const c = catById(a.category);
+    const msg = `שלום! המודעה שלך ב"מי ומה" (${c?.name}) אושרה 🎉\nלתשלום של ${nis(a.pixels * PRICE)} עבור ${a.pixels.toLocaleString("he-IL")} פיקסלים — הנה קישור התשלום:\n[הדבק/י כאן את קישור Grow]\n\nלאחר התשלום המודעה תעלה. תודה!`;
+    window.open(`https://wa.me/${waNumber(a.phone)}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const isUpd = (a) => a.status === "live" && hasUpdate(a);
+  const counts = {
+    pending: ads.filter((a) => a.status === "pending").length,
+    awaiting_payment: ads.filter((a) => a.status === "awaiting_payment").length,
+    updates: ads.filter(isUpd).length,
+    live: ads.filter((a) => a.status === "live").length,
+    removed: ads.filter((a) => a.status === "removed").length,
+  };
+  const list = tab === "updates" ? ads.filter(isUpd) : ads.filter((a) => a.status === tab);
+  const TABS = [["pending", "לבדיקה"], ["awaiting_payment", "ממתין לתשלום"], ["updates", "עדכונים"], ["live", "באוויר"], ["removed", "הוסרו"]];
+
+  return (
+    <main className="admin">
+      <div className="board-head"><h2>אזור ניהול</h2></div>
+      <div className="seg wide scroll">
+        {TABS.map(([k, label]) => (
+          <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{label} <i className="cnt">{counts[k]}</i></button>
+        ))}
+      </div>
+
+      {loading ? <div className="center pad"><div className="spin" /></div>
+        : list.length === 0 ? <div className="card narrow center"><p className="muted">אין מודעות כאן 🎉</p></div>
+        : tab === "updates" ? (
+          <div className="queue">{list.map((a) => {
+            const c = catById(a.category);
+            return (
+              <div className="qcard" key={a.id}>
+                <div className="diff">
+                  <div className="diff-col"><span className="tiny muted">נוכחי</span>
+                    <div className="qimg sm" style={{ aspectRatio: a.w / a.h }}>
+                      {a.image_url ? <img src={a.image_url} alt="" /> : <span className="ad-lbl">{a.title}</span>}</div></div>
+                  <div className="diff-arrow">←</div>
+                  <div className="diff-col"><span className="tiny accent">מבוקש</span>
+                    <div className="qimg sm" style={{ aspectRatio: a.w / a.h }}>
+                      {(a.pending_image_url || a.image_url) ? <img src={a.pending_image_url || a.image_url} alt="" />
+                        : <span className="ad-lbl">{a.pending_title || a.title}</span>}</div></div>
+                </div>
+                <div className="qbody">
+                  <span className="tiny muted">{c?.icon} {c?.name}</span>
+                  {a.pending_title != null && <span className="tiny">כותרת: <b>{a.pending_title}</b></span>}
+                  {a.pending_link != null && <a className="qlink" href={a.pending_link} target="_blank" rel="noopener noreferrer nofollow" dir="ltr">{a.pending_link}</a>}
+                  {a.pending_image_url != null && <span className="tiny">התמונה הוחלפה</span>}
+                </div>
+                <div className="qact">
+                  <button className="ok" onClick={() => approveUpdate(a)}>אשר עדכון</button>
+                  <button className="no" onClick={() => rejectUpdate(a)}>דחה</button>
+                </div>
+              </div>
+            );
+          })}</div>
+        ) : (
+          <div className="queue">{list.map((a) => {
+            const c = catById(a.category);
+            const refundUntil = addDays(a.created_at, 14);
+            const refundable = new Date() < refundUntil;
+            return (
+              <div className="qcard" key={a.id}>
+                <div className="qimg" style={{ aspectRatio: a.w / a.h }}>
+                  {a.image_url ? <img src={a.image_url} alt="" /> : <span className="ad-lbl">{a.title}</span>}
+                </div>
+                <div className="qbody">
+                  <b>{a.title}</b>
+                  <span className="tiny muted">{c?.icon} {c?.name} · {a.pixels.toLocaleString("he-IL")} פיקסל · {nis(a.pixels)}</span>
+                  <a className="qlink" href={a.link} target="_blank" rel="noopener noreferrer nofollow" dir="ltr">{a.link}</a>
+                  <span className="tiny muted" dir="ltr">☎ {a.phone}</span>
+                  <span className="tiny muted">הוזמן: {fmtDate(a.created_at)}{a.published_at ? ` · פורסם: ${fmtDate(a.published_at)}` : ""}</span>
+                  {(tab === "awaiting_payment" || tab === "live") &&
+                    <span className={"tiny " + (refundable ? "ok-text" : "muted")}>{refundable ? `בחלון החזר (עד ${fmtDate(refundUntil)})` : "מחוץ לחלון ההחזר"}</span>}
+                  {a.flags?.length > 0 && <div className="warn">⚠️ {a.flags.join(" · ")}</div>}
+                  {isUpd(a) && <div className="warn ok-box">יש עדכון בלשונית "עדכונים"</div>}
+                </div>
+                <div className="qact">
+                  {a.status === "pending" && <>
+                    <button className="ok" onClick={() => setStatus(a, "awaiting_payment")}>אישור תוכן</button>
+                    <button className="no" onClick={() => remove(a)}>דחייה</button></>}
+                  {a.status === "awaiting_payment" && <>
+                    <button className="wa" onClick={() => whatsapp(a)}>שלח לתשלום</button>
+                    <button className="ok" onClick={() => publish(a)}>שולם · העלה</button>
+                    <button className="no" onClick={() => remove(a)}>בטל</button></>}
+                  {a.status === "live" && <>
+                    <button className="wa" onClick={() => whatsapp(a)}>וואטסאפ</button>
+                    <button className="no" onClick={() => remove(a)}>הסר</button></>}
+                  {a.status === "removed" && <button className="no" onClick={() => remove(a)}>מחק לצמיתות</button>}
+                </div>
+              </div>
+            );
+          })}</div>
+        )}
+    </main>
+  );
+}
