@@ -846,6 +846,37 @@ function Admin({ session, isAdmin, onAuth }) {
   return <AdminQueue />;
 }
 
+function AdminPwReset() {
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const reset = async () => {
+    setMsg(null);
+    if (waNumber(phone).length < 11) return setMsg({ err: "מספר טלפון לא תקין." });
+    setBusy(true);
+    const pw = genPassword();
+    const { data, error } = await supabase.rpc("admin_reset_password", { target_email: phoneEmail(phone), new_password: pw });
+    setBusy(false);
+    if (error) return setMsg({ err: error.message.includes("not authorized") ? "אין הרשאת ניהול." : error.message });
+    if (!data) return setMsg({ err: "לא נמצא משתמש עם הטלפון הזה." });
+    setMsg({ pw });
+    const m = `הסיסמה שלך ב"מי ומה" אופסה 🔑\n📱 טלפון: ${phone}\n🔑 סיסמה חדשה: ${pw}\n\nאפשר להתחבר עכשיו עם הפרטים האלה.`;
+    window.open(`https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(m)}`, "_blank");
+  };
+  return (
+    <div className="card pw-reset">
+      <h3>🔑 שחזור סיסמה למשתמש</h3>
+      <p className="tiny muted">מזינים טלפון של משתמש → נוצרת סיסמה חדשה אוטומטית ונשלחת אליו לוואטסאפ.</p>
+      <div className="pw-row">
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-1234567" dir="ltr" inputMode="tel" />
+        <button className="cta dark" disabled={busy} onClick={reset}>{busy ? "..." : "איפוס ושליחה"}</button>
+      </div>
+      {msg?.err && <div className="warn err">{msg.err}</div>}
+      {msg?.pw && <div className="warn ok-box">סיסמה חדשה: <b dir="ltr">{msg.pw}</b> · נשלחה לוואטסאפ של המשתמש.</div>}
+    </div>
+  );
+}
+
 function AdminQueue() {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -901,6 +932,7 @@ function AdminQueue() {
   return (
     <main className="admin">
       <div className="board-head"><h2>אזור ניהול</h2></div>
+      <AdminPwReset />
       <div className="seg wide scroll">
         {TABS.map(([k, label]) => (
           <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{label} <i className="cnt">{counts[k]}</i></button>

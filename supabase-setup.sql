@@ -40,6 +40,27 @@ returns boolean language sql security definer stable set search_path = public as
 $$;
 grant execute on function public.is_admin() to authenticated, anon;
 
+-- pgcrypto (לחישוב סיסמה מוצפנת) — בדרך כלל כבר מותקן ב-Supabase
+create extension if not exists pgcrypto with schema extensions;
+
+-- שחזור סיסמה למשתמש — רק מנהל יכול להפעיל. יוצר סיסמה חדשה למשתמש לפי האימייל הפנימי (טלפון@mevema.co.il)
+create or replace function public.admin_reset_password(target_email text, new_password text)
+returns boolean language plpgsql security definer
+set search_path = public, auth, extensions as $$
+declare n int;
+begin
+  if not public.is_admin() then raise exception 'not authorized'; end if;
+  update auth.users
+     set encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf')),
+         updated_at = now()
+   where email = lower(target_email);
+  get diagnostics n = row_count;
+  return n > 0;
+end;
+$$;
+grant execute on function public.admin_reset_password(text, text) to authenticated;
+
+
 -- 3) הרשאות (RLS)
 alter table public.ads enable row level security;
 grant select, insert, update, delete on public.ads to authenticated;
