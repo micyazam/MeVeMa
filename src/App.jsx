@@ -22,6 +22,7 @@ const CATEGORIES = [
   { id: "courses",    name: "קורסים ולימודים", icon: "🎓", color: "#0EA5A0" },
   { id: "celebs",     name: "מפורסמים",        icon: "⭐", color: "#CA8A04" },
   { id: "finance",    name: "פיננסים וביטוח",  icon: "📊", color: "#1E7A46" },
+  { id: "media",      name: "תקשורת ומדיה",    icon: "📺", color: "#DB2777" },
 ];
 const catById = (id) => CATEGORIES.find((c) => c.id === id);
 
@@ -357,9 +358,9 @@ function Home({ ads, onPick }) {
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">לוח הפרסום בפיקסלים של ישראל</p>
-        <h1>קונים מקום.<br /><span className="hl">משאירים חותם.</span></h1>
-        <p className="sub">בוחרים קטגוריה, קונים בלוק פיקסלים, מעלים תמונה וקישור. ₪1 לכל פיקסל.</p>
+        <p className="eyebrow">מי ומה — כולם כאן</p>
+        <h1>תפסו את <span className="hl">המקום שלכם</span></h1>
+        <p className="sub">בוחרים קטגוריה, תופסים פיקסלים, מעלים תמונה וקישור — ומופיעים לכולם. ₪1 לכל פיקסל.</p>
         <div className="stats">
           <div><b>{nis(totalSold)}</b><span>פיקסלים נמכרו</span></div>
           <div><b>{CATEGORIES.length}</b><span>קטגוריות</span></div>
@@ -419,99 +420,6 @@ function generateSlots(catId) {
   }
   return slots;
 }
-/* ----------------------- זום ופאן ללוח ----------------------- */
-function ZoomBoard({ color, children }) {
-  const vp = useRef(null);
-  const [z, setZ] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const ptrs = useRef(new Map());
-  const pinch = useRef(null);
-  const drag = useRef(null);
-  const moved = useRef(false);
-  const MAX = 14;
-
-  const clampPan = (p, zz) => {
-    const r = vp.current.getBoundingClientRect();
-    const minX = r.width - r.width * zz, minY = r.height - r.height * zz;
-    return { x: Math.min(0, Math.max(minX, p.x)), y: Math.min(0, Math.max(minY, p.y)) };
-  };
-  const zoomTo = (z2, fx, fy) => {
-    z2 = Math.min(MAX, Math.max(1, z2));
-    setPan((prev) => (z2 === 1 ? { x: 0, y: 0 }
-      : clampPan({ x: fx - (fx - prev.x) * (z2 / z), y: fy - (fy - prev.y) * (z2 / z) }, z2)));
-    setZ(z2);
-  };
-  const center = (f) => { const r = vp.current.getBoundingClientRect(); zoomTo(z * f, r.width / 2, r.height / 2); };
-
-  // בנייד מתחילים מוגדל אוטומטית כדי שהמשבצות/תמונות יהיו גדולות
-  useEffect(() => {
-    if (typeof window === "undefined" || !vp.current) return;
-    if (window.innerWidth <= 700) {
-      const r = vp.current.getBoundingClientRect();
-      const z0 = 3;
-      setZ(z0);
-      setPan(clampPan({ x: (r.width - r.width * z0) / 2, y: 0 }, z0));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const onWheel = (e) => {
-    e.preventDefault();
-    const r = vp.current.getBoundingClientRect();
-    zoomTo(z * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX - r.left, e.clientY - r.top);
-  };
-  const onPointerDown = (e) => {
-    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    moved.current = false;
-    if (ptrs.current.size === 2) {
-      const [a, b] = [...ptrs.current.values()];
-      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z };
-      drag.current = null;
-    } else if (z > 1) {
-      drag.current = { px: e.clientX, py: e.clientY, pan: { ...pan }, cap: false };
-    }
-  };
-  const onPointerMove = (e) => {
-    if (!ptrs.current.has(e.pointerId)) return;
-    ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const r = vp.current.getBoundingClientRect();
-    if (ptrs.current.size >= 2 && pinch.current) {
-      const [a, b] = [...ptrs.current.values()];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      moved.current = true;
-      zoomTo(pinch.current.z * (d / pinch.current.d), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
-    } else if (drag.current) {
-      const dx = e.clientX - drag.current.px, dy = e.clientY - drag.current.py;
-      if (!drag.current.cap && Math.abs(dx) + Math.abs(dy) > 6) {
-        drag.current.cap = true; moved.current = true;
-        try { vp.current.setPointerCapture(e.pointerId); } catch (_) {}
-      }
-      if (drag.current.cap) setPan(clampPan({ x: drag.current.pan.x + dx, y: drag.current.pan.y + dy }, z));
-    }
-  };
-  const onPointerUp = (e) => {
-    ptrs.current.delete(e.pointerId);
-    if (ptrs.current.size < 2) pinch.current = null;
-    if (ptrs.current.size === 0) drag.current = null;
-  };
-  const onClickCapture = (e) => { if (moved.current) { e.preventDefault(); e.stopPropagation(); moved.current = false; } };
-
-  return (
-    <div className={"board-viewport" + (z > 1 ? " pan" : "")} ref={vp} style={{ borderColor: color + "55" }}
-      onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onClickCapture={onClickCapture}>
-      <div className="board big zoomable" style={{ transform: `translate(${pan.x}px,${pan.y}px) scale(${z})` }}>
-        {children}
-      </div>
-      <div className="zoom-ctrl">
-        <button onClick={() => center(1.6)} aria-label="הגדלה">+</button>
-        <button onClick={() => center(1 / 1.6)} aria-label="הקטנה">−</button>
-        {z > 1 && <button className="rst" onClick={() => { setZ(1); setPan({ x: 0, y: 0 }); }} aria-label="איפוס תצוגה">⤢</button>}
-      </div>
-    </div>
-  );
-}
-
 /* ----------------------- לוח קטגוריה ----------------------- */
 function Board({ cat, ads, session, onChange }) {
   const catAds = ads.filter((a) => a.category === cat.id);
@@ -533,10 +441,10 @@ function Board({ cat, ads, session, onChange }) {
       </div>
 
       <div className="board-tip-row">
-        <p className="board-tip tiny muted">לוחצים על משבצת פנויה → מעלים תמונה. צוֹבטים/גלגלת לזום, גרירה להזזה. הקווים הדקים = פיקסלים (תא = 100 פיקסלים).</p>
+        <p className="board-tip tiny muted">בנייד אפשר לצבוט (pinch) להגדלה. לוחצים על משבצת פנויה כדי לפרסם. הקווים הדקים = פיקסלים (תא = 100 פיקסלים).</p>
       </div>
 
-      <ZoomBoard color={cat.color}>
+      <div className="board big" style={{ borderColor: cat.color + "55" }}>
         {slots.map((slot, i) => {
           const ad = adAt(slot);
           if (ad) {
@@ -575,7 +483,7 @@ function Board({ cat, ads, session, onChange }) {
           );
         })}
         <div className="grid-overlay" />
-      </ZoomBoard>
+      </div>
 
       {buying && (
         <SlotBuyModal slot={buying} cat={cat} session={session} ads={catAds}
