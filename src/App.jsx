@@ -11,18 +11,18 @@ const GRID = 1000, SNAP = 10, PRICE = 1, BUCKET = "ad-images";
 const CONTACT = { email: "info@example.com", phone: "050-0000000", company: "מי ומה" };
 
 const CATEGORIES = [
-  { id: "realestate", name: 'נדל"ן',           icon: "🏠", color: "#E8553B" },
-  { id: "auto",       name: "רכב",             icon: "🚗", color: "#2F6FED" },
-  { id: "food",       name: "מזון",            icon: "🍔", color: "#F2A007" },
-  { id: "pharm",      name: "פארם & ביוטי",    icon: "💄", color: "#E0489B" },
-  { id: "cellular",   name: "סלולרי",          icon: "📱", color: "#16A38A" },
-  { id: "vacation",   name: "חופשה",           icon: "✈️", color: "#1FA6D6" },
-  { id: "fashion",    name: "אופנה",           icon: "👗", color: "#8B5CF6" },
-  { id: "jobs",       name: "דרושים",          icon: "💼", color: "#475569" },
-  { id: "courses",    name: "קורסים ולימודים", icon: "🎓", color: "#0EA5A0" },
-  { id: "celebs",     name: "מפורסמים",        icon: "⭐", color: "#CA8A04" },
-  { id: "finance",    name: "פיננסים וביטוח",  icon: "📊", color: "#1E7A46" },
-  { id: "media",      name: "תקשורת ומדיה",    icon: "📺", color: "#DB2777" },
+  { id: "realestate", name: 'נדל"ן',           icon: "🏠", color: "#7C3AED", example: "דירות חדשות בחיפה" },
+  { id: "auto",       name: "רכב",             icon: "🚗", color: "#4F46E5", example: "טויוטה קורולה 2023" },
+  { id: "food",       name: "מזון",            icon: "🍔", color: "#DB2777", example: "מסעדה חדשה נפתחה" },
+  { id: "pharm",      name: "פארם & ביוטי",    icon: "💄", color: "#EC4899", example: "מוצרי טיפוח וקוסמטיקה" },
+  { id: "cellular",   name: "סלולרי",          icon: "📱", color: "#0D9488", example: "אייפון במבצע השקה" },
+  { id: "vacation",   name: "חופשה",           icon: "✈️", color: "#0EA5E9", example: "חבילת נופש ביוון" },
+  { id: "fashion",    name: "אופנה",           icon: "👗", color: "#A21CAF", example: "קולקציית קיץ חדשה" },
+  { id: "jobs",       name: "דרושים",          icon: "💼", color: "#6366F1", example: "דרוש/ה איש/ת מכירות" },
+  { id: "courses",    name: "קורסים ולימודים", icon: "🎓", color: "#14B8A6", example: "קורס דיגיטל למתחילים" },
+  { id: "celebs",     name: "מפורסמים",        icon: "⭐", color: "#C026D3", example: "עקבו אחריי באינסטגרם" },
+  { id: "finance",    name: "פיננסים וביטוח",  icon: "📊", color: "#7E22CE", example: "ביטוח רכב משתלם" },
+  { id: "websites",   name: "אתרים ו-AI",      icon: "🌐", color: "#6D28D9", example: "בניית אתרים בעזרת AI" },
 ];
 const catById = (id) => CATEGORIES.find((c) => c.id === id);
 
@@ -557,7 +557,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
           )}
 
           <label className="fl">כותרת קצרה
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={40} placeholder="לדוגמה: דירות חדשות בחיפה" /></label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={40} placeholder={`לדוגמה: ${cat.example || cat.name}`} /></label>
           <label className="fl">קישור
             <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://..." dir="ltr" /></label>
           {linkCheck && !linkCheck.ok && <div className="warn err">⛔ {linkCheck.flags.join(" · ")}</div>}
