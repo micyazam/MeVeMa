@@ -61,6 +61,14 @@ function waNumber(phone) {
   if (d.startsWith("0")) return "972" + d.slice(1);
   return d;
 }
+const phoneEmail = (phone) => `${waNumber(phone)}@miuma.app`;
+const validPhone = (phone) => waNumber(phone).length >= 11 && waNumber(phone).length <= 13;
+function genPassword() {
+  const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let p = "";
+  for (let i = 0; i < 8; i++) p += c[Math.floor(Math.random() * c.length)];
+  return p;
+}
 
 function compressImage(file, w, h) {
   return new Promise((res, rej) => {
@@ -154,10 +162,11 @@ export default function App() {
     onAdmin: () => setView("admin"),
     onAuth: () => setView("auth"),
     onLogout: () => supabase.auth.signOut().then(() => setView("home")),
+    onPickCat: (c) => { setCat(c); setView("board"); },
   };
 
   return (
-    <Shell nav={nav} session={session} isAdmin={isAdmin}>
+    <Shell nav={nav} session={session} isAdmin={isAdmin} activeCat={view === "board" ? cat : null}>
       {loading ? <div className="center pad"><div className="spin" /></div>
         : view === "reset" ? <ResetPassword onDone={() => setView("home")} />
         : view === "auth" ? <AuthPage onAuthed={() => setView("account")} />
@@ -172,20 +181,32 @@ export default function App() {
   );
 }
 
-function Shell({ children, nav = {}, session, isAdmin }) {
+function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
   return (
     <div className="wm">
-      <header className="hd">
-        <button className="brand" onClick={nav.onHome}><span className="logo">מי<em>ו</em>מה</span></button>
-        <nav>
-          <button className="ghost" onClick={nav.onHome}>קטגוריות</button>
-          {isAdmin && <button className="ghost" onClick={nav.onAdmin}>ניהול</button>}
-          {session ? <>
-            <button className="ghost" onClick={nav.onAccount}>האזור שלי</button>
-            <button className="ghost" onClick={nav.onLogout}>יציאה</button>
-          </> : <button className="ghost solid" onClick={nav.onAuth}>התחברות</button>}
-        </nav>
-      </header>
+      <div className="topbar">
+        <header className="hd">
+          <button className="brand" onClick={nav.onHome}>
+            <span className="logo-sq">מי<br />ומה</span>
+          </button>
+          <nav>
+            <button className="ghost" onClick={nav.onHome}>בית</button>
+            {isAdmin && <button className="ghost" onClick={nav.onAdmin}>ניהול</button>}
+            {session ? <>
+              <button className="ghost" onClick={nav.onAccount}>האזור שלי</button>
+              <button className="ghost" onClick={nav.onLogout}>יציאה</button>
+            </> : <button className="ghost solid" onClick={nav.onAuth}>התחברות</button>}
+          </nav>
+        </header>
+        <div className="catbar">
+          {CATEGORIES.map((c) => (
+            <button key={c.id} className={"catchip" + (activeCat?.id === c.id ? " on" : "")}
+              onClick={() => nav.onPickCat(c)} style={activeCat?.id === c.id ? { borderColor: c.color, color: c.color } : undefined}>
+              <span>{c.icon}</span> {c.name}
+            </button>
+          ))}
+        </div>
+      </div>
       {children}
       <footer className="ft">
         <div className="ft-links">
@@ -212,56 +233,88 @@ VITE_SUPABASE_ANON_KEY=...</pre>
 
 /* ----------------------- אימות ----------------------- */
 function AuthForm({ onAuthed, compact }) {
-  const [mode, setMode] = useState("login"); // login | signup | forgot
-  const [email, setEmail] = useState("");
+  const [mode, setMode] = useState("login"); // login | signup
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [pass, setPass] = useState("");
-  const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [creds, setCreds] = useState(null); // {phone, pw}
+
+  const sendWhatsApp = (ph, pw) => {
+    const msg = `שלום! נפתח עבורך חשבון ב"מי ומה" 🎉\n\nפרטי הכניסה שלך:\n📱 טלפון: ${ph}\n🔑 סיסמה: ${pw}\n\nשמור/י הודעה זו. תוכל/י להתחבר באתר עם הפרטים האלה.`;
+    window.open(`https://wa.me/${waNumber(ph)}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   const go = async () => {
-    setBusy(true); setErr(""); setMsg("");
+    setErr("");
+    if (!validPhone(phone)) return setErr("מספר טלפון לא תקין (לדוגמה 050-1234567).");
+    setBusy(true);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error; onAuthed?.();
-      } else if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password: pass });
+        if (!pass) { setBusy(false); return setErr("יש להזין סיסמה."); }
+        const { error } = await supabase.auth.signInWithPassword({ email: phoneEmail(phone), password: pass });
         if (error) throw error;
-        if (data.session) onAuthed?.();
-        else setMsg("נשלח אליך מייל לאישור החשבון. אשרי אותו ואז התחברי.");
+        onAuthed?.();
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        const pw = genPassword();
+        const { data, error } = await supabase.auth.signUp({
+          email: phoneEmail(phone), password: pw,
+          options: { data: { phone: phone.trim(), name: name.trim() } },
+        });
         if (error) throw error;
-        setMsg("אם הכתובת קיימת — נשלח אליה מייל לאיפוס סיסמה.");
+        if (!data.user || (data.user.identities && data.user.identities.length === 0)) throw new Error("exists");
+        sendWhatsApp(phone, pw);     // שולח את הפרטים לוואטסאפ אוטומטית
+        setCreds({ phone, pw });     // ומציג אותם גם על המסך
       }
     } catch (e) {
-      setErr(e.message === "Invalid login credentials" ? "אימייל או סיסמה שגויים" : (e.message || "שגיאה"));
+      const m = e.message || "";
+      if (m.includes("Invalid login")) setErr("טלפון או סיסמה שגויים.");
+      else if (m === "exists" || m.includes("already") || m.includes("registered")) setErr("המספר כבר רשום — נסה/י להתחבר.");
+      else setErr(m || "שגיאה, נסה/י שוב.");
     } finally { setBusy(false); }
   };
 
+  if (creds) {
+    return (
+      <div className={compact ? "" : "card narrow"}>
+        <h3>החשבון נפתח! 🎉</h3>
+        <p className="tiny muted">שלחנו את הפרטים לוואטסאפ שלך. שמור/י אותם:</p>
+        <div className="creds">
+          <div><span>טלפון</span><b dir="ltr">{creds.phone}</b></div>
+          <div><span>סיסמה</span><b dir="ltr">{creds.pw}</b></div>
+        </div>
+        <button className="btn-line" onClick={() => sendWhatsApp(creds.phone, creds.pw)}>שליחה שוב לוואטסאפ</button>
+        <button className="cta dark" onClick={() => onAuthed?.()}>המשך</button>
+      </div>
+    );
+  }
+
   return (
     <div className={compact ? "" : "card narrow"}>
-      <h3>{mode === "login" ? "התחברות" : mode === "signup" ? "פתיחת חשבון" : "שחזור סיסמה"}</h3>
-      {mode === "signup" && <p className="tiny muted">פותחים חשבון כדי לפרסם ולנהל מודעות.</p>}
-      <label className="fl">אימייל<input value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" type="email" /></label>
-      {mode !== "forgot" && (
+      <h3>{mode === "login" ? "התחברות" : "פתיחת חשבון"}</h3>
+      <p className="tiny muted">
+        {mode === "login" ? "מתחברים עם הטלפון והסיסמה שקיבלת בוואטסאפ." : "נרשמים עם מספר טלפון — סיסמה תיווצר ותישלח אליך לוואטסאפ אוטומטית."}
+      </p>
+      {mode === "signup" && (
+        <label className="fl">שם<input value={name} onChange={(e) => setName(e.target.value)} placeholder="שם מלא / שם העסק" /></label>
+      )}
+      <label className="fl">טלפון<input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-1234567" dir="ltr" inputMode="tel"
+        onKeyDown={(e) => e.key === "Enter" && go()} /></label>
+      {mode === "login" && (
         <label className="fl">סיסמה<input value={pass} onChange={(e) => setPass(e.target.value)} dir="ltr" type="password"
           onKeyDown={(e) => e.key === "Enter" && go()} /></label>
       )}
       {err && <div className="warn err">{err}</div>}
-      {msg && <div className="warn ok-box">{msg}</div>}
       <button className="cta dark" disabled={busy} onClick={go}>
-        {busy ? "..." : mode === "login" ? "כניסה" : mode === "signup" ? "הרשמה" : "שלח/י מייל איפוס"}
+        {busy ? "..." : mode === "login" ? "כניסה" : "פתיחת חשבון ושליחה לוואטסאפ"}
       </button>
       <div className="auth-links">
-        {mode === "login" && <>
-          <button onClick={() => setMode("signup")}>אין לך חשבון? הרשמה</button>
-          <button onClick={() => setMode("forgot")}>שכחת סיסמה?</button>
-        </>}
-        {mode === "signup" && <button onClick={() => setMode("login")}>יש לך חשבון? התחברות</button>}
-        {mode === "forgot" && <button onClick={() => setMode("login")}>חזרה להתחברות</button>}
+        {mode === "login"
+          ? <button onClick={() => { setMode("signup"); setErr(""); }}>אין לך חשבון? פתיחת חשבון</button>
+          : <button onClick={() => { setMode("login"); setErr(""); }}>יש לך חשבון? התחברות</button>}
       </div>
+      {mode === "login" && <p className="tiny muted" style={{ marginTop: 8, textAlign: "center" }}>שכחת סיסמה? פנה/י אלינו בעמוד ״צור קשר״.</p>}
     </div>
   );
 }
@@ -459,7 +512,7 @@ function Board({ cat, ads, session, onChange }) {
   const adAt = (slot) => catAds.find((a) => a.x === slot.x && a.y === slot.y);
 
   return (
-    <main className="board-wrap">
+    <main className="board-wrap full">
       <div className="board-head">
         <div>
           <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name}</h2>
@@ -524,7 +577,7 @@ function Board({ cat, ads, session, onChange }) {
 function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("https://");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(session?.user?.user_metadata?.phone || "");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [fileKey, setFileKey] = useState(0);

@@ -107,7 +107,10 @@ create policy "auth delete ad images" on storage.objects
   for delete to authenticated using (bucket_id = 'ad-images');
 
 -- =====================================================================
---  ⚠️ חשוב! הוסיפי את האימייל שאיתו תיכנסי כמנהלת (אותו אימייל שתירשמי איתו):
+--  ⚠️ חשוב! המנהלת מזוהה לפי הטלפון שאיתו היא נרשמת לאתר.
+--  הכניסה לאתר היא בטלפון + סיסמה (לא אימייל).
+--  החליפי 972500000000 במספר שלך בפורמט בינלאומי:
+--    050-1234567  =>  972501234567   (מורידים 0 בהתחלה, מוסיפים 972)
 -- =====================================================================
-insert into public.admins (email) values ('mic.yazam@gmail.com')
+insert into public.admins (email) values ('972500000000@miuma.app')
 on conflict (email) do nothing;
