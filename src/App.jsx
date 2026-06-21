@@ -61,7 +61,7 @@ function waNumber(phone) {
   if (d.startsWith("0")) return "972" + d.slice(1);
   return d;
 }
-const phoneEmail = (phone) => `${waNumber(phone)}@miuma.app`;
+const phoneEmail = (phone) => `${waNumber(phone)}@mevema.co.il`;
 const validPhone = (phone) => waNumber(phone).length >= 11 && waNumber(phone).length <= 13;
 function genPassword() {
   const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -558,7 +558,7 @@ function Board({ cat, ads, session, onChange }) {
                 <span className="slot-lbl sm"><b>{slot.pixels.toLocaleString("he-IL")} פיקס׳</b><em>{nis(slot.pixels)}</em></span>
               ) : sm ? (
                 <span className="slot-lbl xs">{nis(slot.pixels)}</span>
-              ) : <span className="slot-dot">+</span>}
+              ) : null}
             </button>
           );
         })}
