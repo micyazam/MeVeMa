@@ -443,6 +443,18 @@ function ZoomBoard({ color, children }) {
   };
   const center = (f) => { const r = vp.current.getBoundingClientRect(); zoomTo(z * f, r.width / 2, r.height / 2); };
 
+  // בנייד מתחילים מוגדל אוטומטית כדי שהמשבצות/תמונות יהיו גדולות
+  useEffect(() => {
+    if (typeof window === "undefined" || !vp.current) return;
+    if (window.innerWidth <= 700) {
+      const r = vp.current.getBoundingClientRect();
+      const z0 = 3;
+      setZ(z0);
+      setPan(clampPan({ x: (r.width - r.width * z0) / 2, y: 0 }, z0));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onWheel = (e) => {
     e.preventDefault();
     const r = vp.current.getBoundingClientRect();
