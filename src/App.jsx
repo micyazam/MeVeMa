@@ -389,34 +389,29 @@ function Home({ ads, onPick }) {
 const PASTELS = ["#FBD5D5", "#FCE8C9", "#FAF3C5", "#D9F2D6", "#CCEFE7", "#CFE2FB", "#E2D8FB", "#F7D8EC", "#FBDCC6", "#D6EEF8"];
 const CELLS = 100; // 100x100 תאים (תא = 100 פיקסל)
 
-const SLOT_PATTERNS = [
-  { w: 1, r: [[0, 0, 10, 10]] },
-  { w: 2, r: [[0, 0, 10, 5], [0, 5, 10, 5]] },
-  { w: 2, r: [[0, 0, 5, 10], [5, 0, 5, 10]] },
-  { w: 4, r: [[0, 0, 5, 5], [5, 0, 5, 5], [0, 5, 5, 5], [5, 5, 5, 5]] },
-  { w: 3, r: [[0, 0, 10, 5], [0, 5, 5, 5], [5, 5, 5, 5]] },
-  { w: 3, r: [[0, 0, 5, 5], [5, 0, 5, 5], [0, 5, 10, 5]] },
-  { w: 2, r: [[0, 0, 5, 10], [5, 0, 5, 2], [5, 2, 5, 2], [5, 4, 5, 2], [5, 6, 5, 2], [5, 8, 5, 2]] },
-  { w: 2, r: [[0, 0, 5, 5], [5, 0, 5, 5], [0, 5, 5, 5], [5, 5, 5, 2], [5, 7, 5, 2], [5, 9, 5, 1]] },
-  { w: 1, r: [[0, 0, 10, 5], [0, 5, 5, 5], [5, 5, 5, 1], [5, 6, 5, 1], [5, 7, 5, 1], [5, 8, 5, 1], [5, 9, 5, 1]] },
-  { w: 2, r: [[0, 0, 2, 1], [2, 0, 2, 1], [4, 0, 1, 1], [0, 1, 2, 1], [2, 1, 2, 1], [4, 1, 1, 1], [0, 2, 5, 1], [0, 3, 2, 1], [2, 3, 2, 1], [4, 3, 1, 1], [0, 4, 5, 1], [5, 0, 5, 5], [0, 5, 10, 5]] },
-  { w: 1, r: [[0, 0, 2, 1], [2, 0, 2, 1], [4, 0, 2, 1], [6, 0, 2, 1], [8, 0, 2, 1], [0, 1, 2, 1], [2, 1, 2, 1], [4, 1, 2, 1], [6, 1, 2, 1], [8, 1, 2, 1], [0, 2, 5, 1], [5, 2, 5, 1], [0, 3, 1, 1], [1, 3, 1, 1], [2, 3, 1, 1], [3, 3, 1, 1], [4, 3, 1, 1], [5, 3, 1, 1], [6, 3, 1, 1], [7, 3, 1, 1], [8, 3, 1, 1], [9, 3, 1, 1], [0, 4, 2, 1], [2, 4, 2, 1], [4, 4, 2, 1], [6, 4, 2, 1], [8, 4, 2, 1], [0, 5, 5, 5], [5, 5, 5, 5]] },
+const SLOT_SIZES = [
+  { w: 10, h: 10, pixels: 10000, wt: 1 },
+  { w: 10, h: 5, pixels: 5000, wt: 2 }, { w: 5, h: 10, pixels: 5000, wt: 2 },
+  { w: 5, h: 5, pixels: 2500, wt: 7 },
+  { w: 5, h: 2, pixels: 1000, wt: 6 }, { w: 2, h: 5, pixels: 1000, wt: 3 },
+  { w: 5, h: 1, pixels: 500, wt: 3 }, { w: 1, h: 5, pixels: 500, wt: 2 },
+  { w: 2, h: 1, pixels: 200, wt: 3 }, { w: 1, h: 2, pixels: 200, wt: 2 },
+  { w: 1, h: 1, pixels: 100, wt: 2 },
 ];
 
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-// פסיפס נקי: 10x10 בלוקי-על, לכל אחד תבנית חלוקה (גדלים 500–10,000)
+// רשימת מקומות פנויים מגוונים לפריסה זורמת (יציבה לכל קטגוריה)
+const SLOT_COUNT = 150;
 function generateSlots(catId) {
   const rng = mulberry32(hashStr(catId));
-  const totW = SLOT_PATTERNS.reduce((t, p) => t + p.w, 0);
+  const totW = SLOT_SIZES.reduce((t, s) => t + s.wt, 0);
   const slots = [];
-  for (let my = 0; my < 10; my++) for (let mx = 0; mx < 10; mx++) {
-    let r = rng() * totW, pat = SLOT_PATTERNS[0];
-    for (const p of SLOT_PATTERNS) { r -= p.w; if (r <= 0) { pat = p; break; } }
-    pat.r.forEach(([cx, cy, cw, ch], idx) => {
-      slots.push({ id: `${mx}-${my}-${idx}`, x: (mx * 10 + cx) * 10, y: (my * 10 + cy) * 10, w: cw * 10, h: ch * 10, pixels: cw * ch * 100 });
-    });
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    let r = rng() * totW, pick = SLOT_SIZES[0];
+    for (const s of SLOT_SIZES) { r -= s.wt; if (r <= 0) { pick = s; break; } }
+    slots.push({ id: "s" + i, x: i, y: 0, w: pick.w * 10, h: pick.h * 10, pixels: pick.pixels });
   }
   return slots;
 }
@@ -441,38 +436,36 @@ function Board({ cat, ads, session, onChange }) {
       </div>
 
       <div className="board-tip-row">
-        <p className="board-tip tiny muted">בנייד אפשר לצבוט (pinch) להגדלה. לוחצים על משבצת פנויה כדי לפרסם. הקווים הדקים = פיקסלים (תא = 100 פיקסלים).</p>
+        <p className="board-tip tiny muted">לוחצים על בלוק פנוי כדי לפרסם בו. הבלוקים הגדולים = יותר פיקסלים. גוללים למטה לעוד מקומות.</p>
       </div>
 
-      <div className="board big" style={{ borderColor: cat.color + "55" }}>
+      <div className="flow-board">
         {slots.map((slot, i) => {
           const ad = adAt(slot);
+          const cols = slot.w / 10, rows = slot.h / 10;
           if (ad) {
             return (
-              <a key={slot.id} className={"ad " + (ad.status !== "live" ? "pend" : "")}
+              <a key={slot.id} className={"tile ad " + (ad.status !== "live" ? "pend" : "")}
                 href={ad.status === "live" ? ad.link : undefined}
                 target="_blank" rel="noopener noreferrer nofollow"
                 onClick={(e) => { if (ad.status !== "live") e.preventDefault(); }}
                 title={ad.title}
-                style={{ left: (slot.x / GRID) * 100 + "%", top: (slot.y / GRID) * 100 + "%",
-                  width: (slot.w / GRID) * 100 + "%", height: (slot.h / GRID) * 100 + "%",
+                style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`,
                   background: ad.image_url ? undefined : cat.color }}>
                 {ad.image_url ? <img src={ad.image_url} alt={ad.title} /> : <span className="ad-lbl">{ad.title}</span>}
               </a>
             );
           }
-          const big = slot.pixels >= 5000, mid = slot.pixels >= 1000, sm = slot.pixels >= 500;
+          const big = slot.pixels >= 2500, mid = slot.pixels >= 1000, sm = slot.pixels >= 300;
           return (
-            <button key={slot.id} className="slot" onClick={() => setBuying(slot)}
+            <button key={slot.id} className="tile slot" onClick={() => setBuying(slot)}
               title={`${slot.pixels.toLocaleString("he-IL")} פיקסלים · ${nis(slot.pixels)}`}
-              style={{ left: (slot.x / GRID) * 100 + "%", top: (slot.y / GRID) * 100 + "%",
-                width: (slot.w / GRID) * 100 + "%", height: (slot.h / GRID) * 100 + "%",
-                background: PASTELS[i % PASTELS.length] }}>
+              style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`, background: PASTELS[i % PASTELS.length] }}>
               {big ? (
                 <span className="slot-lbl">
                   <b>אבחר מקום כאן</b>
                   <span>{slot.pixels.toLocaleString("he-IL")} פיקסלים</span>
-                  <em>{nis(slot.pixels)} · ₪1/פיקסל</em>
+                  <em>{nis(slot.pixels)}</em>
                 </span>
               ) : mid ? (
                 <span className="slot-lbl sm"><b>{slot.pixels.toLocaleString("he-IL")} פיקס׳</b><em>{nis(slot.pixels)}</em></span>
@@ -482,7 +475,6 @@ function Board({ cat, ads, session, onChange }) {
             </button>
           );
         })}
-        <div className="grid-overlay" />
       </div>
 
       {buying && (
