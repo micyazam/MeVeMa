@@ -20,7 +20,7 @@ create table if not exists public.ads (
   pending_title     text,                        -- שינוי שממתין לאישור
   pending_link      text,
   pending_image_url text,
-  published_at timestamptz,                       -- מועד עלייה לאוויר (לחישוב תוקף שנה)
+  published_at timestamptz,                       -- מועד עלייה לאוויר (תוקף ללא הגבלה, מינימום 3 שנים)
   created_at   timestamptz default now()          -- מועד ההזמנה (לחישוב חלון 14 יום)
 );
 

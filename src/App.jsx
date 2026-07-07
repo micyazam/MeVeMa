@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { supabase, isConfigured } from "./supabaseClient";
 
 /* ============================================================
-   מי ומה — לוח פיקסלים פרסומי · ₪1 לפיקסל · 1,000,000 לעמוד
+   מי ומה — לוח פיקסלים פרסומי · ₪1 לפיקסל · מודעה מ-₪100
    ============================================================ */
 
 const GRID = 1000, SNAP = 10, PRICE = 1, BUCKET = "ad-images";
 
-/* >>> ערכי את פרטי הקשר שלך כאן <<< */
-const CONTACT = { email: "info@example.com", phone: "050-0000000", company: "מי ומה" };
+/* >>> פרטי קשר <<< */
+const CONTACT = { email: "mic.yazam@gmail.com", phone: "051-5003870", company: "מי ומה", owner: "מיכל ילוז" };
+/* קישור תשלום מאובטח (Grow) */
+const PAY_LINK = "https://meshulam.co.il/quick_payment?b=f304af7b95e28ebc16eafdac6a2fbe90";
+/* תוקף מודעה */
+const VALIDITY_TEXT = "תוקף המודעה: ללא הגבלת זמן · מובטח מינימום 3 שנים · ניתן לעדכן את המודעה בכל עת";
 
 const CATEGORIES = [
   { id: "realestate", name: 'נדל"ן',           icon: "🏠", color: "#7C3AED", example: "דירות חדשות בחיפה" },
@@ -21,6 +25,7 @@ const CATEGORIES = [
   { id: "jobs",       name: "דרושים",          icon: "💼", color: "#6366F1", example: "דרוש/ה איש/ת מכירות" },
   { id: "courses",    name: "קורסים ולימודים", icon: "🎓", color: "#14B8A6", example: "קורס דיגיטל למתחילים" },
   { id: "celebs",     name: "מפורסמים",        icon: "⭐", color: "#C026D3", example: "עקבו אחריי באינסטגרם" },
+  { id: "publicfig",  name: "נבחרי ציבור",     icon: "🏛️", color: "#1D4ED8", example: "חבר/ת מועצה — כאן בשבילכם" },
   { id: "finance",    name: "פיננסים וביטוח",  icon: "📊", color: "#7E22CE", example: "ביטוח רכב משתלם" },
   { id: "websites",   name: "אתרים ו-AI",      icon: "🌐", color: "#6D28D9", example: "בניית אתרים בעזרת AI" },
 ];
@@ -215,7 +220,7 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
           <button onClick={nav.onPrivacy}>מדיניות פרטיות</button><span>·</span>
           <button onClick={nav.onContact}>צור קשר</button>
         </div>
-        <p><strong>מי ומה</strong> · ₪1 לפיקסל · תוקף מודעה: שנה לפחות · כל מודעה וכל עדכון עוברים אישור.</p>
+        <p><strong>מי ומה</strong> · ₪1 לפיקסל · תוקף המודעות ללא הגבלת זמן — מינימום 3 שנים · ניתן לעדכן את המודעה · כל מודעה וכל עדכון עוברים אישור.</p>
       </footer>
     </div>
   );
@@ -360,11 +365,11 @@ function Home({ ads, onPick }) {
       <section className="hero">
         <p className="eyebrow">מי ומה — כולם כאן</p>
         <h1>תפסו את <span className="hl">המקום שלכם</span></h1>
-        <p className="sub">בוחרים קטגוריה, תופסים פיקסלים, מעלים תמונה וקישור — ומופיעים לכולם. ₪1 לכל פיקסל.</p>
+        <p className="sub">בוחרים קטגוריה, תופסים משבצת, מעלים תמונה וקישור — ומופיעים לכולם. מודעה החל מ־₪100 בלבד.</p>
         <div className="stats">
           <div><b>{nis(totalSold)}</b><span>פיקסלים נמכרו</span></div>
           <div><b>{CATEGORIES.length}</b><span>קטגוריות</span></div>
-          <div><b>1,000,000</b><span>פיקסלים לעמוד</span></div>
+          <div><b>מ־₪100</b><span>מחיר מודעה · ₪1 לפיקסל</span></div>
         </div>
       </section>
       <section className="cats">
@@ -431,7 +436,7 @@ function Board({ cat, ads, session, onChange }) {
       <div className="board-head">
         <div>
           <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name}</h2>
-          <p className="muted">{nis(sold)} מתוך {nis(1_000_000)} פיקסלים · {pct.toFixed(2)}% מלא · בחר/י משבצת פנויה</p>
+          <p className="muted">מודעות החל מ־₪100 (₪1 לפיקסל) · נתפסו כבר {sold.toLocaleString("he-IL")} פיקסלים · בחר/י משבצת פנויה</p>
         </div>
       </div>
 
@@ -444,11 +449,13 @@ function Board({ cat, ads, session, onChange }) {
           const ad = adAt(slot);
           const cols = slot.w / 10, rows = slot.h / 10;
           if (ad) {
+            // מודעה שאושרה (ממתינה לתשלום או באוויר) מוצגת בצבע מלא ועם קישור פעיל
+            const approved = ad.status === "live" || ad.status === "awaiting_payment";
             return (
-              <a key={slot.id} className={"tile ad " + (ad.status !== "live" ? "pend" : "")}
-                href={ad.status === "live" ? ad.link : undefined}
+              <a key={slot.id} className={"tile ad " + (!approved ? "pend" : "")}
+                href={approved ? ad.link : undefined}
                 target="_blank" rel="noopener noreferrer nofollow"
-                onClick={(e) => { if (ad.status !== "live") e.preventDefault(); }}
+                onClick={(e) => { if (!approved) e.preventDefault(); }}
                 title={ad.title}
                 style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`,
                   background: ad.image_url ? undefined : cat.color }}>
@@ -536,8 +543,8 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
         {sent ? (
           <div style={{ textAlign: "center" }}>
             <h3>נשלח לאישור! ✅</h3>
-            <p className="muted">ניצור איתך קשר בוואטסאפ עם קישור לתשלום של {nis(price)}.</p>
-            <div className="warn ok-box">אפשר לעקוב, לערוך או לבטל בלשונית ״האזור שלי״.</div>
+            <p className="muted">לאחר אישור התוכן ניצור איתך קשר בוואטסאפ עם קישור לתשלום מאובטח (Grow) על סך {nis(price)}. לאחר התשלום תקבל/י אישור בוואטסאפ והמודעה תעלה לאוויר.</p>
+            <div className="warn ok-box">✨ {VALIDITY_TEXT}.<br />אפשר לעקוב, לערוך או לבטל בלשונית ״האזור שלי״.</div>
             <button className="cta dark" onClick={onDone}>סיום</button>
           </div>
         ) : (<>
@@ -547,6 +554,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
             <span className="tiny muted">{slot.w}×{slot.h} · ₪1 לפיקסל</span>
             <em>{nis(price)}</em>
           </div>
+          <div className="warn ok-box tiny">✨ {VALIDITY_TEXT} (כל עדכון באישור)</div>
 
           {!session && (
             <div className="gate">
@@ -618,7 +626,7 @@ function Account({ session, onChange }) {
           <div className="my-list">
             {ads.map((a) => {
               const c = catById(a.category);
-              const validUntil = a.published_at ? addYears(a.published_at, 1) : null;
+              const validUntil = a.published_at ? addYears(a.published_at, 3) : null;
               const refundUntil = addDays(a.created_at, 14);
               const refundable = new Date() < refundUntil && a.status !== "removed";
               return (
@@ -632,7 +640,10 @@ function Account({ session, onChange }) {
                       <span className={"chip " + a.status}>{labelOf(a)}</span>
                     </div>
                     <span className="tiny muted">{c?.icon} {c?.name} · {a.pixels.toLocaleString("he-IL")} פיקסל · {nis(a.pixels)}</span>
-                    {a.status === "live" && <span className="tiny muted">בתוקף עד {fmtDate(validUntil)}</span>}
+                    {a.status === "live" && <span className="tiny muted">בתוקף ללא הגבלת זמן · מובטח לפחות עד {fmtDate(validUntil)} · ניתן לעדכן בכל עת</span>}
+                    {a.status === "awaiting_payment" && (
+                      <a className="tiny accent" href={PAY_LINK} target="_blank" rel="noopener noreferrer">💳 לתשלום מאובטח ({nis(a.pixels * PRICE)}) — לחצו כאן</a>
+                    )}
                     {a.status !== "removed" && (
                       <span className={"tiny " + (refundable ? "ok-text" : "muted")}>
                         {refundable ? `ניתן לביטול בהחזר עד ${fmtDate(refundUntil)}` : "חלון הביטול (14 יום) הסתיים"}
@@ -738,10 +749,10 @@ function Terms() {
   return (
     <main className="doc">
       <h1>תנאי שימוש</h1>
-      <p className="muted tiny">עודכן לאחרונה: יוני 2026 · יש להחליף את הפרטים בסוגריים המרובעים בפרטי העסק שלך.</p>
+      <p className="muted tiny">עודכן לאחרונה: יולי 2026</p>
 
       <h3>1. כללי</h3>
-      <p>אתר "מי ומה" (להלן: "האתר"), המופעל על ידי [שם העסק / ח.פ. / ע.מ.], הוא פלטפורמה לרכישת שטחי פרסום (פיקסלים) והצגת תמונה וקישור בהם. השימוש באתר מהווה הסכמה לתנאים אלה.</p>
+      <p>אתר "מי ומה" (להלן: "האתר"), המופעל על ידי {CONTACT.owner} (טלפון: {CONTACT.phone}, דוא"ל: {CONTACT.email}), הוא פלטפורמה לרכישת שטחי פרסום (פיקסלים) והצגת תמונה וקישור בהם. השימוש באתר מהווה הסכמה לתנאים אלה.</p>
 
       <h3>2. אופי השירות</h3>
       <p>האתר משמש כמתווך בלבד להצגת מודעות, ואינו צד לכל עסקה בין מפרסם לצד שלישי. האתר אינו אחראי לתוכן, לאמינות, למוצרים או לשירותים המופיעים במודעות.</p>
@@ -750,22 +761,25 @@ function Terms() {
       <p>המפרסם אחראי באופן בלעדי לתוכן המודעה, ומצהיר כי הוא חוקי, אינו מפר זכויות יוצרים, סימני מסחר או כל זכות של צד שלישי, ואינו מטעה. המפרסם נושא באחריות מלאה לכל נזק שייגרם כתוצאה מהמודעה.</p>
 
       <h3>4. תכנים אסורים</h3>
-      <p>אסור להעלות תוכן פוגעני, מיני, אלים, מפלה, בלתי חוקי, מטעה, או קישורים זדוניים. [שם העסק] רשאי לסרב, להסיר או לערוך כל מודעה לפי שיקול דעתו הבלעדי וללא צורך בנימוק.</p>
+      <p>אסור להעלות תוכן פוגעני, מיני, אלים, מפלה, בלתי חוקי, מטעה, או קישורים זדוניים. מפעילת האתר רשאית לסרב, להסיר או לערוך כל מודעה לפי שיקול דעתה הבלעדי וללא צורך בנימוק.</p>
 
       <h3>5. אישור, תשלום ועדכונים</h3>
-      <p>כל מודעה וכל עדכון למודעה קיימת כפופים לאישור מראש. מודעה תפורסם רק לאחר אישור התוכן והשלמת התשלום במלואו. שינוי במודעה קיימת לא ייכנס לתוקף עד לאישורו, והמודעה הקודמת תמשיך להופיע עד אז.</p>
+      <p>כל מודעה וכל עדכון למודעה קיימת כפופים לאישור מראש. מודעה תפורסם רק לאחר אישור התוכן והשלמת התשלום במלואו באמצעות קישור תשלום מאובטח (Grow). לאחר התשלום יישלח למפרסם אישור בוואטסאפ. שינוי במודעה קיימת לא ייכנס לתוקף עד לאישורו, והמודעה הקודמת תמשיך להופיע עד אז.</p>
 
       <h3>6. תוקף המודעה</h3>
-      <p>תוקף מודעה שפורסמה הוא <b>שנה אחת לפחות</b> ממועד פרסומה, אלא אם המפרסם בחר מרצונו להסיר את המודעה ולוותר על המקום. הסרה יזומה על ידי המפרסם משחררת את שטח הפרסום לאחרים.</p>
+      <p>תוקף מודעה שפורסמה הוא <b>ללא הגבלת זמן, ומובטח לתקופה של שלוש (3) שנים לפחות</b> ממועד פרסומה. המפרסם רשאי לעדכן את המודעה בכל עת (בכפוף לאישור), או להסירה מרצונו ולוותר על המקום. הסרה יזומה על ידי המפרסם משחררת את שטח הפרסום לאחרים.</p>
 
       <h3>7. ביטול והחזר כספי</h3>
       <p>ניתן לבטל את ההזמנה ולקבל החזר כספי <b>עד 14 יום ממועד ההזמנה</b>. לאחר 14 יום לא יינתן החזר. ביטול והחזר בכפוף לחוק הגנת הצרכן, התשמ"א-1981.</p>
 
       <h3>8. הגבלת אחריות</h3>
-      <p>השירות ניתן כפי שהוא ("AS IS"). [שם העסק] לא יישא באחריות לכל נזק ישיר או עקיף שייגרם משימוש באתר או מהסתמכות על מודעות המופיעות בו.</p>
+      <p>השירות ניתן כפי שהוא ("AS IS"). מפעילת האתר לא תישא באחריות לכל נזק ישיר או עקיף שייגרם משימוש באתר או מהסתמכות על מודעות המופיעות בו.</p>
 
       <h3>9. שיפוט</h3>
-      <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים ב[עיר].</p>
+      <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים בישראל.</p>
+
+      <h3>10. יצירת קשר</h3>
+      <p>בכל שאלה ניתן לפנות אל {CONTACT.owner}: <a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a> · <span dir="ltr">{CONTACT.phone}</span>.</p>
 
       <p className="muted tiny doc-note">⚠️ מסמך זה הוא תבנית בסיסית ואינו ייעוץ משפטי. מומלץ שעו"ד יעבור עליו ויתאים אותו לעסק שלך לפני תחילת גבייה.</p>
     </main>
@@ -777,10 +791,10 @@ function Privacy() {
   return (
     <main className="doc">
       <h1>מדיניות פרטיות</h1>
-      <p className="muted tiny">עודכן לאחרונה: יוני 2026 · יש להחליף את הפרטים בסוגריים המרובעים בפרטי העסק שלך.</p>
+      <p className="muted tiny">עודכן לאחרונה: יולי 2026</p>
 
       <h3>1. כללי</h3>
-      <p>מדיניות זו מסבירה כיצד אתר "מי ומה", המופעל על ידי [שם העסק / ח.פ.] (להלן: "אנחנו"), אוסף ומשתמש במידע אישי. אנו פועלים בהתאם לחוק הגנת הפרטיות, התשמ"א-1981. השימוש באתר מהווה הסכמה למדיניות זו.</p>
+      <p>מדיניות זו מסבירה כיצד אתר "מי ומה", המופעל על ידי {CONTACT.owner} (להלן: "אנחנו"), אוסף ומשתמש במידע אישי. אנו פועלים בהתאם לחוק הגנת הפרטיות, התשמ"א-1981. השימוש באתר מהווה הסכמה למדיניות זו.</p>
 
       <h3>2. איזה מידע נאסף</h3>
       <p>בעת פתיחת חשבון ופרסום מודעה נאספים: כתובת אימייל, מספר טלפון, ותוכן המודעה (תמונה, כותרת וקישור). כמו כן נאסף מידע טכני בסיסי הנדרש לתפעול האתר (כגון כתובת IP ונתוני התחברות).</p>
@@ -789,7 +803,7 @@ function Privacy() {
       <p>המידע משמש לניהול החשבון, להצגת המודעות באתר, ליצירת קשר לצורך אישור ותיאום תשלום (כולל בוואטסאפ), ולמתן תמיכה. לא נעשה שימוש במידע למטרות שלא פורטו כאן ללא הסכמתך.</p>
 
       <h3>4. שיתוף עם צדדים שלישיים</h3>
-      <p>איננו מוכרים מידע אישי. המידע מאוחסן ומעובד אצל ספקי שירות הדרושים לתפעול האתר, ובהם [Supabase] (מסד נתונים ואחסון), [Vercel] (אירוח), ו-[Grow] (סליקת תשלומים). ספקים אלה כפופים להתחייבויות אבטחה ופרטיות. מידע עשוי להימסר אם נידרש לכך על פי דין.</p>
+      <p>איננו מוכרים מידע אישי. המידע מאוחסן ומעובד אצל ספקי שירות הדרושים לתפעול האתר, ובהם Supabase (מסד נתונים ואחסון), ספק האירוח של האתר, ו-Grow (משולם) לסליקת תשלומים. ספקים אלה כפופים להתחייבויות אבטחה ופרטיות. מידע עשוי להימסר אם נידרש לכך על פי דין.</p>
 
       <h3>5. עוגיות ומידע טכני</h3>
       <p>האתר עושה שימוש באמצעי אחסון בדפדפן הנדרשים לשמירת ההתחברות שלך ולתפעול תקין. אין שימוש בעוגיות פרסום או מעקב של צד שלישי.</p>
@@ -804,7 +818,7 @@ function Privacy() {
       <p>אנו שומרים את המידע כל עוד החשבון פעיל וכנדרש לצרכים חוקיים, חשבונאיים ותפעוליים. לאחר מכן המידע יימחק או יונפק.</p>
 
       <h3>9. יצירת קשר</h3>
-      <p>בכל שאלה בנושא פרטיות ניתן לפנות אל [{CONTACT.email}] או בטלפון [{CONTACT.phone}].</p>
+      <p>בכל שאלה בנושא פרטיות ניתן לפנות אל {CONTACT.owner}: <a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a> או בטלפון <span dir="ltr">{CONTACT.phone}</span>.</p>
 
       <h3>10. שינויים</h3>
       <p>אנו רשאים לעדכן מדיניות זו מעת לעת. הגרסה העדכנית תפורסם בעמוד זה.</p>
@@ -891,7 +905,13 @@ function AdminQueue() {
   const setStatus = async (a, status, extra = {}) => {
     await supabase.from("ads").update({ status, ...extra }).eq("id", a.id); load();
   };
-  const publish = (a) => setStatus(a, "live", a.published_at ? {} : { published_at: new Date().toISOString() });
+  // "שולם · העלה" — מפרסם את המודעה וגם שולח אישור תשלום בוואטסאפ ללקוח
+  const publish = async (a) => {
+    await setStatus(a, "live", a.published_at ? {} : { published_at: new Date().toISOString() });
+    const c = catById(a.category);
+    const msg = `שלום! 🎉 התשלום על סך ${nis(a.pixels * PRICE)} התקבל בהצלחה, והמודעה שלך "${a.title}" (${c?.name}) עלתה לאוויר ב"מי ומה"!\n\n✨ ${VALIDITY_TEXT}.\nאפשר לצפות, לערוך ולעקוב אחרי המודעה בלשונית "האזור שלי" באתר.\n\nתודה שפרסמת אצלנו! 💜\nמי ומה · ${CONTACT.phone}`;
+    window.open(`https://wa.me/${waNumber(a.phone)}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   const remove = async (a) => {
     if (!confirm(`למחוק לצמיתות את "${a.title}"?`)) return;
@@ -914,7 +934,7 @@ function AdminQueue() {
   };
   const whatsapp = (a) => {
     const c = catById(a.category);
-    const msg = `שלום! המודעה שלך ב"מי ומה" (${c?.name}) אושרה 🎉\nלתשלום של ${nis(a.pixels * PRICE)} עבור ${a.pixels.toLocaleString("he-IL")} פיקסלים — הנה קישור התשלום:\n[הדבק/י כאן את קישור Grow]\n\nלאחר התשלום המודעה תעלה. תודה!`;
+    const msg = `שלום! המודעה שלך ב"מי ומה" (${c?.name}) אושרה 🎉\nלתשלום מאובטח של ${nis(a.pixels * PRICE)} עבור ${a.pixels.toLocaleString("he-IL")} פיקסלים — הנה קישור התשלום (Grow):\n${PAY_LINK}\n\n✨ ${VALIDITY_TEXT}.\nלאחר התשלום תקבל/י אישור בוואטסאפ והמודעה תעלה לאוויר. תודה!`;
     window.open(`https://wa.me/${waNumber(a.phone)}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
