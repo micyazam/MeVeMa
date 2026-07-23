@@ -30,6 +30,7 @@ alter table public.ads add column if not exists pending_title text;
 alter table public.ads add column if not exists pending_link text;
 alter table public.ads add column if not exists pending_image_url text;
 alter table public.ads add column if not exists published_at timestamptz;
+alter table public.ads add column if not exists approved_at timestamptz;  -- מועד אישור התוכן (לספירת 24/48/72 שעות לתשלום)
 
 -- 2) טבלת מנהלים (מי שיש לו גישה לאזור הניהול)
 create table if not exists public.admins (email text primary key);

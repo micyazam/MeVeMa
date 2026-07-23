@@ -154,6 +154,9 @@ a{color:inherit;text-decoration:none}
 .gate{margin-bottom:6px}
 .sep{border:none;border-top:1px solid var(--line);margin:16px 0}
 .ok-text{color:#0B815E}
+.err-text{color:#C0263B;font-weight:600}
+.tile.slot.taken{cursor:default;opacity:.85}
+.tile.slot.taken .slot-lbl b{color:#5B4B78}
 
 .account{max-width:760px;margin:0 auto;padding:18px 16px 50px}
 .my-list{display:flex;flex-direction:column;gap:12px}

@@ -13,6 +13,8 @@ const CONTACT = { email: "mic.yazam@gmail.com", phone: "051-5003870", company: "
 const PAY_LINK = "https://meshulam.co.il/quick_payment?b=f304af7b95e28ebc16eafdac6a2fbe90";
 /* תוקף מודעה */
 const VALIDITY_TEXT = "תוקף המודעה: ללא הגבלת זמן · מובטח מינימום 3 שנים · ניתן לעדכן את המודעה בכל עת";
+/* חלון החזר כספי (ימים) */
+const REFUND_DAYS = 21;
 
 const CATEGORIES = [
   { id: "realestate", name: 'נדל"ן',           icon: "🏠", color: "#7C3AED", example: "דירות חדשות בחיפה" },
@@ -221,6 +223,7 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
           <button onClick={nav.onContact}>צור קשר</button>
         </div>
         <p><strong>מי ומה</strong> · ₪1 לפיקסל · תוקף המודעות ללא הגבלת זמן — מינימום 3 שנים · ניתן לעדכן את המודעה · כל מודעה וכל עדכון עוברים אישור.</p>
+        <p className="tiny">מספר הפיקסלים מוגבל ל-1,000,000 פיקסלים בכל קטגוריה · אין החזרים כספיים לאחר 21 יום · אין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם היות הפרויקט ייחודי.</p>
       </footer>
     </div>
   );
@@ -449,13 +452,24 @@ function Board({ cat, ads, session, onChange }) {
           const ad = adAt(slot);
           const cols = slot.w / 10, rows = slot.h / 10;
           if (ad) {
-            // מודעה שאושרה (ממתינה לתשלום או באוויר) מוצגת בצבע מלא ועם קישור פעיל
-            const approved = ad.status === "live" || ad.status === "awaiting_payment";
+            // מודעה שעדיין לא אושרה — לא מציגים את תוכנה, רק "תפוס · ממתין לאישור"
+            if (ad.status === "pending") {
+              const bigT = slot.pixels >= 1000;
+              return (
+                <div key={slot.id} className="tile slot taken"
+                  title="המקום תפוס · ממתין לאישור"
+                  style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`, background: "#ECE7F3", cursor: "default" }}>
+                  {bigT
+                    ? <span className="slot-lbl"><b>🔒 תפוס</b><span>ממתין לאישור</span></span>
+                    : <span className="slot-lbl xs">🔒 תפוס</span>}
+                </div>
+              );
+            }
+            // מודעה מאושרת (ממתינה לתשלום או באוויר) מוצגת בצבע מלא ועם קישור פעיל
             return (
-              <a key={slot.id} className={"tile ad " + (!approved ? "pend" : "")}
-                href={approved ? ad.link : undefined}
+              <a key={slot.id} className="tile ad"
+                href={ad.link}
                 target="_blank" rel="noopener noreferrer nofollow"
-                onClick={(e) => { if (!approved) e.preventDefault(); }}
                 title={ad.title}
                 style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`,
                   background: ad.image_url ? undefined : cat.color }}>
@@ -543,7 +557,9 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
         {sent ? (
           <div style={{ textAlign: "center" }}>
             <h3>נשלח לאישור! ✅</h3>
-            <p className="muted">לאחר אישור התוכן ניצור איתך קשר בוואטסאפ עם קישור לתשלום מאובטח (Grow) על סך {nis(price)}. לאחר התשלום תקבל/י אישור בוואטסאפ והמודעה תעלה לאוויר.</p>
+            <p className="muted">אפשר לשלם עכשיו בקישור המאובטח (Grow) — המודעה תעלה לאוויר מיד לאחר אישור התוכן והתשלום. אישור יישלח אליך בוואטסאפ.</p>
+            <a className="cta dark" style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 10 }}
+              href={PAY_LINK} target="_blank" rel="noopener noreferrer">💳 מעבר לתשלום מאובטח · {nis(price)}</a>
             <div className="warn ok-box">✨ {VALIDITY_TEXT}.<br />אפשר לעקוב, לערוך או לבטל בלשונית ״האזור שלי״.</div>
             <button className="cta dark" onClick={onDone}>סיום</button>
           </div>
@@ -583,7 +599,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
           <div className="row2">
             <button className="btn-line ghost2" onClick={onClose}>ביטול</button>
             <button className="cta" style={{ background: cat.color }} disabled={busy || !session || !file || !linkCheck?.ok} onClick={submit}>
-              {busy ? "שולח..." : "שליחה לאישור · " + nis(price)}
+              {busy ? "שולח..." : "תשלום ושליחה לאישור · " + nis(price)}
             </button>
           </div>
         </>)}
@@ -605,7 +621,7 @@ function Account({ session, onChange }) {
   useEffect(() => { load(); }, [load]);
 
   const remove = async (a) => {
-    if (!confirm(`להסיר את המודעה "${a.title}"? המקום יתפנה ולא ניתן לשחזר.\n(החזר כספי אפשרי רק עד 14 יום מההזמנה.)`)) return;
+    if (!confirm(`להסיר את המודעה "${a.title}"? המקום יתפנה ולא ניתן לשחזר.\n(החזר כספי אפשרי רק עד 21 יום מההזמנה. ויתור על המקום הוא סופי — לא ניתן לקבלו בחזרה.)`)) return;
     await supabase.rpc("remove_own_ad", { p_ad_id: a.id });
     load(); onChange?.();
   };
@@ -627,7 +643,7 @@ function Account({ session, onChange }) {
             {ads.map((a) => {
               const c = catById(a.category);
               const validUntil = a.published_at ? addYears(a.published_at, 3) : null;
-              const refundUntil = addDays(a.created_at, 14);
+              const refundUntil = addDays(a.created_at, REFUND_DAYS);
               const refundable = new Date() < refundUntil && a.status !== "removed";
               return (
                 <div className="my-card" key={a.id}>
@@ -646,7 +662,7 @@ function Account({ session, onChange }) {
                     )}
                     {a.status !== "removed" && (
                       <span className={"tiny " + (refundable ? "ok-text" : "muted")}>
-                        {refundable ? `ניתן לביטול בהחזר עד ${fmtDate(refundUntil)}` : "חלון הביטול (14 יום) הסתיים"}
+                        {refundable ? `ניתן לביטול בהחזר עד ${fmtDate(refundUntil)}` : "חלון הביטול (21 יום) הסתיים"}
                       </span>
                     )}
                     {hasUpdate(a) && <span className="tiny accent">יש עדכון שממתין לאישור</span>}
@@ -677,11 +693,12 @@ function EditAd({ ad, onDone }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
+  const [removeImg, setRemoveImg] = useState(false); // בקשה למחוק את התמונה הקיימת
 
   const linkCheck = link.length > 9 ? checkLink(link) : null;
   const titleChanged = title.trim() && title.trim() !== (ad.title || "");
   const linkChanged = link && link !== (ad.link || "");
-  const anyChange = titleChanged || linkChanged || file;
+  const anyChange = titleChanged || linkChanged || file || removeImg;
 
   const onFile = (e) => {
     const f = e.target.files?.[0]; if (!f) return; setErr("");
@@ -700,6 +717,7 @@ function EditAd({ ad, onDone }) {
     try {
       let image_url = null;
       if (file) image_url = await uploadImage(await compressImage(file, ad.w, ad.h));
+      else if (removeImg) image_url = ""; // מחרוזת ריקה = בקשה למחוק את התמונה
       const { error } = await supabase.rpc("submit_ad_update", {
         p_ad_id: ad.id, p_title: titleChanged ? title.trim() : null,
         p_link: linkChanged ? link : null, p_image_url: image_url,
@@ -731,6 +749,11 @@ function EditAd({ ad, onDone }) {
       <label className="fl">קישור<input value={link} onChange={(e) => setLink(e.target.value)} dir="ltr" /></label>
       {linkCheck && !linkCheck.ok && <div className="warn err">⛔ {linkCheck.flags.join(" · ")}</div>}
       <label className="fl">החלפת תמונה (אופציונלי)<input key={fileKey} type="file" accept="image/*" onChange={onFile} /></label>
+      {ad.image_url && !file && (
+        <button type="button" className={"btn-line " + (removeImg ? "no" : "")} onClick={() => setRemoveImg(!removeImg)}>
+          {removeImg ? "✓ התמונה תימחק (המודעה תוצג עם הכותרת) — לחצו לביטול" : "🗑 מחיקת התמונה הנוכחית"}
+        </button>
+      )}
       {err && <div className="warn err">{err}</div>}
       {preview && <div className="preview">
         <img src={preview} alt="" style={{ aspectRatio: ad.w / ad.h }} />
@@ -766,19 +789,23 @@ function Terms() {
       <h3>5. אישור, תשלום ועדכונים</h3>
       <p>כל מודעה וכל עדכון למודעה קיימת כפופים לאישור מראש. מודעה תפורסם רק לאחר אישור התוכן והשלמת התשלום במלואו באמצעות קישור תשלום מאובטח (Grow). לאחר התשלום יישלח למפרסם אישור בוואטסאפ. שינוי במודעה קיימת לא ייכנס לתוקף עד לאישורו, והמודעה הקודמת תמשיך להופיע עד אז.</p>
 
-      <h3>6. תוקף המודעה</h3>
-      <p>תוקף מודעה שפורסמה הוא <b>ללא הגבלת זמן, ומובטח לתקופה של שלוש (3) שנים לפחות</b> ממועד פרסומה. המפרסם רשאי לעדכן את המודעה בכל עת (בכפוף לאישור), או להסירה מרצונו ולוותר על המקום. הסרה יזומה על ידי המפרסם משחררת את שטח הפרסום לאחרים.</p>
+      <h3>6. תוקף המודעה וויתור על מקום</h3>
+      <p>תוקף מודעה שפורסמה הוא <b>ללא הגבלת זמן, ומובטח לתקופה של שלוש (3) שנים לפחות</b> ממועד פרסומה. המפרסם רשאי לעדכן את המודעה בכל עת (בכפוף לאישור), או להסירה מרצונו ולוותר על המקום.</p>
+      <p><b>ויתור על מקום הוא סופי:</b> מפרסם המוותר מרצונו על מקומו — המקום משוחרר לאלתר, לא ניתן לקבלו בחזרה, ומפעילת האתר רשאית למכור את המקום למפרסם אחר לפי שיקול דעתה הבלעדי. כמו כן, מקום שאושר ולא שולם בתוך 72 שעות ממועד אישור התוכן — מפעילת האתר רשאית לשחררו ולהציעו לאחרים.</p>
 
       <h3>7. ביטול והחזר כספי</h3>
-      <p>ניתן לבטל את ההזמנה ולקבל החזר כספי <b>עד 14 יום ממועד ההזמנה</b>. לאחר 14 יום לא יינתן החזר. ביטול והחזר בכפוף לחוק הגנת הצרכן, התשמ"א-1981.</p>
+      <p>ניתן לבטל את ההזמנה ולקבל החזר כספי <b>עד 21 יום ממועד ההזמנה</b>. <b>לאחר 21 יום לא יינתנו החזרים כספיים כלל.</b> ביטול והחזר בכפוף לחוק הגנת הצרכן, התשמ"א-1981.</p>
 
-      <h3>8. הגבלת אחריות</h3>
+      <h3>8. אין התחייבות לחשיפה או לתוצאות</h3>
+      <p>מפעילת האתר אינה מתחייבת לכמות חשיפה, כניסות, הקלקות או פניות כלשהי הנובעת מהמודעה. החשיפה נובעת מעצם היותו של האתר פרויקט ייחודי, והיא עשויה להשתנות מעת לעת. רכישת שטח פרסום אינה מהווה הבטחה לתוצאה עסקית כלשהי.</p>
+
+      <h3>9. הגבלת אחריות</h3>
       <p>השירות ניתן כפי שהוא ("AS IS"). מפעילת האתר לא תישא באחריות לכל נזק ישיר או עקיף שייגרם משימוש באתר או מהסתמכות על מודעות המופיעות בו.</p>
 
-      <h3>9. שיפוט</h3>
+      <h3>10. שיפוט</h3>
       <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים בישראל.</p>
 
-      <h3>10. יצירת קשר</h3>
+      <h3>11. יצירת קשר</h3>
       <p>בכל שאלה ניתן לפנות אל {CONTACT.owner}: <a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a> · <span dir="ltr">{CONTACT.phone}</span>.</p>
 
       <p className="muted tiny doc-note">⚠️ מסמך זה הוא תבנית בסיסית ואינו ייעוץ משפטי. מומלץ שעו"ד יעבור עליו ויתאים אותו לעסק שלך לפני תחילת גבייה.</p>
@@ -891,11 +918,41 @@ function AdminPwReset() {
   );
 }
 
+/* כלי תמונה למנהלת — החלפה ומחיקה ישירות מהניהול */
+function AdminImgTools({ a, onDone }) {
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const replace = async (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    if (!f.type.startsWith("image/")) return alert("צריך קובץ תמונה.");
+    setBusy(true);
+    try {
+      const url = await uploadImage(await compressImage(f, a.w, a.h));
+      await supabase.from("ads").update({ image_url: url }).eq("id", a.id);
+      if (a.image_url) await deleteImageByUrl(a.image_url);
+      onDone();
+    } catch (err) { alert("שגיאה: " + (err.message || "נסי שוב")); }
+    finally { setBusy(false); if (inputRef.current) inputRef.current.value = ""; }
+  };
+  const del = async () => {
+    if (!a.image_url) return alert("למודעה זו אין תמונה.");
+    if (!confirm("למחוק את התמונה? המודעה תוצג עם הכותרת בלבד.")) return;
+    setBusy(true);
+    await deleteImageByUrl(a.image_url);
+    await supabase.from("ads").update({ image_url: null }).eq("id", a.id);
+    setBusy(false); onDone();
+  };
+  return (<>
+    <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={replace} />
+    <button className="ok" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? "..." : "🖼 החלף תמונה"}</button>
+    <button className="no" disabled={busy} onClick={del}>🗑 מחק תמונה</button>
+  </>);
+}
+
 function AdminQueue() {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("pending");
-
   const load = useCallback(async () => {
     const { data } = await supabase.from("ads").select("*").order("created_at", { ascending: false });
     setAds(data || []); setLoading(false);
@@ -904,6 +961,24 @@ function AdminQueue() {
 
   const setStatus = async (a, status, extra = {}) => {
     await supabase.from("ads").update({ status, ...extra }).eq("id", a.id); load();
+  };
+  // אישור תוכן — שומר גם את מועד האישור (לספירת 24/48/72 שעות לתשלום)
+  const approveContent = (a) => setStatus(a, "awaiting_payment", { approved_at: new Date().toISOString() });
+  const hoursSinceApproval = (a) => Math.floor((Date.now() - new Date(a.approved_at || a.created_at).getTime()) / 36e5);
+
+  // תזכורת תשלום בוואטסאפ (24/48 שעות)
+  const remindPayment = (a, final) => {
+    const msg = final
+      ? `שלום! ⏰ תזכורת אחרונה מ"מי ומה": המודעה שלך "${a.title}" אושרה לפני יותר מ-48 שעות וממתינה לתשלום של ${nis(a.pixels * PRICE)}.\nקישור לתשלום מאובטח (Grow):\n${PAY_LINK}\n\nשימי/שים לב: אם התשלום לא יתקבל תוך 72 שעות מהאישור — המקום ישוחרר ויוצע למפרסמים אחרים.`
+      : `שלום! 👋 תזכורת ידידותית מ"מי ומה": המודעה שלך "${a.title}" אושרה וממתינה לתשלום של ${nis(a.pixels * PRICE)}.\nקישור לתשלום מאובטח (Grow):\n${PAY_LINK}\n\nלאחר התשלום המודעה תעלה מיד לאוויר. תודה!`;
+    window.open(`https://wa.me/${waNumber(a.phone)}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+  // שחרור מקום — לא שולם תוך 72 שעות
+  const releaseSlot = async (a) => {
+    if (!confirm(`לשחרר את המקום של "${a.title}"? המודעה תוסר והמקום יתפנה למפרסמים אחרים.`)) return;
+    await setStatus(a, "removed");
+    const msg = `שלום, המודעה שלך "${a.title}" ב"מי ומה" לא שולמה תוך 72 שעות מהאישור, ולכן המקום שוחרר.\nנשמח לראותך שוב — אפשר תמיד לבחור מקום חדש באתר. 💜`;
+    window.open(`https://wa.me/${waNumber(a.phone)}?text=${encodeURIComponent(msg)}`, "_blank");
   };
   // "שולם · העלה" — מפרסם את המודעה וגם שולח אישור תשלום בוואטסאפ ללקוח
   const publish = async (a) => {
@@ -922,9 +997,10 @@ function AdminQueue() {
     const apply = { pending_title: null, pending_link: null, pending_image_url: null };
     if (a.pending_title != null) apply.title = a.pending_title;
     if (a.pending_link != null) apply.link = a.pending_link;
-    if (a.pending_image_url != null) apply.image_url = a.pending_image_url;
+    if (a.pending_image_url != null) apply.image_url = a.pending_image_url === "" ? null : a.pending_image_url;
     await supabase.from("ads").update(apply).eq("id", a.id);
-    if (a.pending_image_url && a.image_url && a.pending_image_url !== a.image_url) await deleteImageByUrl(a.image_url);
+    // מחיקת התמונה הישנה מהאחסון (גם כשהוחלפה וגם כשנמחקה)
+    if (a.pending_image_url != null && a.image_url && a.pending_image_url !== a.image_url) await deleteImageByUrl(a.image_url);
     load();
   };
   const rejectUpdate = async (a) => {
@@ -964,6 +1040,8 @@ function AdminQueue() {
         : tab === "updates" ? (
           <div className="queue">{list.map((a) => {
             const c = catById(a.category);
+            const imgDeleted = a.pending_image_url === "";
+            const pendImg = imgDeleted ? null : (a.pending_image_url ?? a.image_url);
             return (
               <div className="qcard" key={a.id}>
                 <div className="diff">
@@ -973,14 +1051,14 @@ function AdminQueue() {
                   <div className="diff-arrow">←</div>
                   <div className="diff-col"><span className="tiny accent">מבוקש</span>
                     <div className="qimg sm" style={{ aspectRatio: a.w / a.h }}>
-                      {(a.pending_image_url || a.image_url) ? <img src={a.pending_image_url || a.image_url} alt="" />
+                      {pendImg ? <img src={pendImg} alt="" />
                         : <span className="ad-lbl">{a.pending_title || a.title}</span>}</div></div>
                 </div>
                 <div className="qbody">
                   <span className="tiny muted">{c?.icon} {c?.name}</span>
                   {a.pending_title != null && <span className="tiny">כותרת: <b>{a.pending_title}</b></span>}
                   {a.pending_link != null && <a className="qlink" href={a.pending_link} target="_blank" rel="noopener noreferrer nofollow" dir="ltr">{a.pending_link}</a>}
-                  {a.pending_image_url != null && <span className="tiny">התמונה הוחלפה</span>}
+                  {a.pending_image_url != null && <span className="tiny">{imgDeleted ? "🗑 בקשה למחוק את התמונה" : "התמונה הוחלפה"}</span>}
                 </div>
                 <div className="qact">
                   <button className="ok" onClick={() => approveUpdate(a)}>אשר עדכון</button>
@@ -992,7 +1070,7 @@ function AdminQueue() {
         ) : (
           <div className="queue">{list.map((a) => {
             const c = catById(a.category);
-            const refundUntil = addDays(a.created_at, 14);
+            const refundUntil = addDays(a.created_at, REFUND_DAYS);
             const refundable = new Date() < refundUntil;
             return (
               <div className="qcard" key={a.id}>
@@ -1007,21 +1085,33 @@ function AdminQueue() {
                   <span className="tiny muted">הוזמן: {fmtDate(a.created_at)}{a.published_at ? ` · פורסם: ${fmtDate(a.published_at)}` : ""}</span>
                   {(tab === "awaiting_payment" || tab === "live") &&
                     <span className={"tiny " + (refundable ? "ok-text" : "muted")}>{refundable ? `בחלון החזר (עד ${fmtDate(refundUntil)})` : "מחוץ לחלון ההחזר"}</span>}
+                  {a.status === "awaiting_payment" && (
+                    <span className={"tiny " + (hoursSinceApproval(a) >= 72 ? "err-text" : "muted")}>⏱ עברו {hoursSinceApproval(a)} שעות מאישור התוכן</span>
+                  )}
                   {a.flags?.length > 0 && <div className="warn">⚠️ {a.flags.join(" · ")}</div>}
                   {isUpd(a) && <div className="warn ok-box">יש עדכון בלשונית "עדכונים"</div>}
                 </div>
                 <div className="qact">
                   {a.status === "pending" && <>
-                    <button className="ok" onClick={() => setStatus(a, "awaiting_payment")}>אישור תוכן</button>
+                    <button className="ok" onClick={() => approveContent(a)}>אישור תוכן</button>
                     <button className="no" onClick={() => remove(a)}>דחייה</button></>}
                   {a.status === "awaiting_payment" && <>
                     <button className="wa" onClick={() => whatsapp(a)}>שלח לתשלום</button>
+                    {hoursSinceApproval(a) >= 24 && hoursSinceApproval(a) < 48 &&
+                      <button className="wa" onClick={() => remindPayment(a, false)}>⏰ תזכורת (24 ש׳)</button>}
+                    {hoursSinceApproval(a) >= 48 &&
+                      <button className="wa" onClick={() => remindPayment(a, true)}>⏰ תזכורת אחרונה (48 ש׳)</button>}
+                    {hoursSinceApproval(a) >= 72 &&
+                      <button className="no" onClick={() => releaseSlot(a)}>🔓 שחרור המקום (72 ש׳)</button>}
                     <button className="ok" onClick={() => publish(a)}>שולם · העלה</button>
                     <button className="no" onClick={() => remove(a)}>בטל</button></>}
                   {a.status === "live" && <>
                     <button className="wa" onClick={() => whatsapp(a)}>וואטסאפ</button>
-                    <button className="no" onClick={() => remove(a)}>הסר</button></>}
-                  {a.status === "removed" && <button className="no" onClick={() => remove(a)}>מחק לצמיתות</button>}
+                    <AdminImgTools a={a} onDone={load} />
+                    <button className="no" onClick={() => setStatus(a, "removed")}>הסר מהלוח</button>
+                    <button className="no" onClick={() => remove(a)}>🗑 מחק לצמיתות</button></>}
+                  {a.status !== "live" && a.status !== "removed" && <AdminImgTools a={a} onDone={load} />}
+                  {a.status === "removed" && <button className="no" onClick={() => remove(a)}>🗑 מחק לצמיתות</button>}
                 </div>
               </div>
             );
