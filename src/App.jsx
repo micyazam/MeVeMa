@@ -37,6 +37,7 @@ const CATEGORIES = [
   { id: "fashion",    group: "ma", name: "הסטייל",    icon: "👗",  color: "#A21CAF", desc: "אופנה ועיצוב",                       example: "קולקציית קיץ חדשה" },
   { id: "finance",    group: "ma", name: "הכלכלה",    icon: "💎", color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם" },
   { id: "websites",   group: "ma", name: "הדיגיטל",   icon: "🚀",  color: "#6D28D9", desc: "אתרים, AI ומיזמים",                  example: "בניית אתרים בעזרת AI" },
+  { id: "luxury",     group: "ma", name: "היוקרה",    icon: "💍",  color: "#A16207", desc: "תכשיטים, שעונים ומותגי יוקרה",       example: "הטבעת שהיא חיכתה לה" },
 ];
 const GROUPS = [
   { id: "mi", title: "מי", sub: "האנשים — מי שמוביל, יוצר, מלמד ומשפיע" },
@@ -399,9 +400,10 @@ function Home({ ads, onPick }) {
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">🧩 מי ומה — משחק המיליון · תופסים מקום בפיקסלים · ₪1 לפיקסל</p>
+        <p className="eyebrow">🧩 מי ומה — כולם כאן · תופסים משבצת פרסום · משלמים רק ₪1 לפיקסל</p>
         <h1>תפסו את <span className="hl">המקום שלכם</span> בתמונה</h1>
-        <p className="sub">מיליון פיקסלים בכל קטגוריה. מי שתופס מקום — נכנס לפסיפס של "מי ומה" ונשאר בו לשנים. מוקדם יותר = מקומות טובים יותר. מודעה החל מ-₪100.</p>
+        <p className="sub">מי שתופס מקום — מופיע ב"מי ומה" ונשאר בו לשנים. המקדימים תופסים את המקומות הטובים ביותר, השאר תופסים את מה שנשאר. מודעה החל מ-₪100 (100 פיקסלים).</p>
+        <p className="sub join">הצטרפו למשחק — מספר המקומות מוגבל, כל הקודם זוכה. 🏆</p>
         <div className="stats">
           <div><b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו</span></div>
           <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים בכל הפסיפס</span></div>
