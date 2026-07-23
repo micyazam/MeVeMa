@@ -21,6 +21,10 @@ const CATEGORIES = [
   // ——— עולם ה"מי" — האנשים ———
   { id: "celebs",     group: "mi", name: "הכוכבים",   icon: "⭐",  color: "#C026D3", desc: "יוצרים, משפיענים ואמנים",            example: "עקבו אחרי היוצר הבא של ישראל" },
   { id: "publicfig",  group: "mi", name: "המשפיעים",  icon: "🏛️", color: "#1D4ED8", desc: "נבחרי ציבור ומובילי דעה",            example: "חבר/ת מועצה — כאן בשבילכם" },
+  { id: "healers",    group: "mi", name: "המטפלים",   icon: "💜",  color: "#9333EA", desc: "מטפלים, מאמנים ואנשי רפואה",        example: "הטיפול שמחכה בדיוק לכם" },
+  { id: "experts",    group: "mi", name: "המומחים",   icon: "⚖️",  color: "#0F766E", desc: "עורכי דין, רואי חשבון ויועצים",     example: "המומחה שיפתור לכם את זה" },
+  { id: "athletes",   group: "mi", name: "הספורטאים", icon: "🏅",  color: "#EA580C", desc: "ספורט, כושר ואורח חיים בריא",       example: "המאמן שישנה לכם את הגוף" },
+  { id: "celebrating",group: "mi", name: "החוגגים",   icon: "🎉",  color: "#DB2777", desc: "ברכות, הצעות ואירועים מיוחדים",     example: "מזל טוב! חוגגים כאן לכולם" },
   { id: "jobs",       group: "mi", name: "המגייסים",  icon: "🤝",  color: "#6366F1", desc: "משרות, גיוסים ואנשים מוכשרים",       example: "המשרה הבאה שלך מחכה כאן" },
   { id: "courses",    group: "mi", name: "המלמדים",   icon: "🧠",  color: "#14B8A6", desc: "ידע, קורסים והשראה",                 example: "הקורס שישנה לכם את הקריירה" },
   // ——— עולם ה"מה" — הדברים ———
@@ -31,7 +35,7 @@ const CATEGORIES = [
   { id: "cellular",   group: "ma", name: "החדשנות",   icon: "📱",  color: "#0D9488", desc: "טכנולוגיה וגאדג'טים",                example: "הגאדג'ט שאסור לפספס" },
   { id: "vacation",   group: "ma", name: "החופש",     icon: "🌍",  color: "#0EA5E9", desc: "נופש, טיולים והרפתקאות",             example: "חבילת נופש ביוון" },
   { id: "fashion",    group: "ma", name: "הסטייל",    icon: "👗",  color: "#A21CAF", desc: "אופנה ועיצוב",                       example: "קולקציית קיץ חדשה" },
-  { id: "finance",    group: "ma", name: "הביטחון",   icon: "💎",  color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם" },
+  { id: "finance",    group: "ma", name: "הכלכלה",    icon: "💎", color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם" },
   { id: "websites",   group: "ma", name: "הדיגיטל",   icon: "🚀",  color: "#6D28D9", desc: "אתרים, AI ומיזמים",                  example: "בניית אתרים בעזרת AI" },
 ];
 const GROUPS = [
@@ -372,7 +376,7 @@ function Home({ ads, onPick }) {
   const totalSold = live.reduce((s, a) => s + a.pixels, 0);
   const SITE_PIXELS = CATEGORIES.length * CATEGORY_PIXELS;
   const sitePct = (totalSold / SITE_PIXELS) * 100;
-  // הקטגוריה המובילה במרוץ
+  // הקטגוריה המובילה במשחק
   const leader = CATEGORIES.map((c) => ({ c, sold: live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0) }))
     .sort((a, b) => b.sold - a.sold)[0];
   // החשבון השקוף — מחושב מהלוחות עצמם
@@ -395,7 +399,7 @@ function Home({ ads, onPick }) {
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">🏁 המרוץ הישראלי למיליון פיקסלים · ₪1 לפיקסל</p>
+        <p className="eyebrow">🧩 מי ומה — משחק המיליון · תופסים מקום בפיקסלים · ₪1 לפיקסל</p>
         <h1>תפסו את <span className="hl">המקום שלכם</span> בתמונה</h1>
         <p className="sub">מיליון פיקסלים בכל קטגוריה. מי שתופס מקום — נכנס לפסיפס של "מי ומה" ונשאר בו לשנים. מוקדם יותר = מקומות טובים יותר. מודעה החל מ-₪100.</p>
         <div className="stats">
@@ -404,7 +408,7 @@ function Home({ ads, onPick }) {
           <div><b>מ-₪100</b><span>מחיר כניסה לתמונה</span></div>
         </div>
         {leader?.sold > 0 && (
-          <p className="tiny race-note">🏆 מובילה כרגע במרוץ: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מהפסיפס כולו כבר תפוס</p>
+          <p className="tiny race-note">🏆 מובילה כרגע במשחק: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מהפסיפס כולו כבר תפוס</p>
         )}
       </section>
 
@@ -425,7 +429,7 @@ function Home({ ads, onPick }) {
         <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
         <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פסיפס שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
         <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פסיפס. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים. 💜</p>
-        <p className="story-cta"><b>תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו.</b></p>
+        <p className="story-cta"><b>אשמח שתהיו חלק מהסיפור שלי ותעזרו לי להשלים את הפאזל — תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו. 🧩</b></p>
       </section>
 
       <section className="math">
@@ -497,7 +501,7 @@ function slotBreakdown(catId) {
   }
   return { count, total, sizes: [...bySize.entries()].sort((a, b) => b[0] - a[0]) };
 }
-// ציוני דרך במרוץ למיליון
+// ציוני דרך במשחק המיליון
 const MILESTONES = [
   { at: 10_000,    name: "הניצוץ הראשון ✨" },
   { at: 50_000,    name: "חמישים אלף 🔥" },
@@ -531,7 +535,7 @@ function Board({ cat, ads, session, onChange }) {
 
       <div className="race">
         <div className="race-top">
-          <span>🏁 המרוץ למיליון</span>
+          <span>🧩 משחק המיליון</span>
           <b>{sold.toLocaleString("he-IL")} / 1,000,000 פיקסלים · {pct.toFixed(2)}%</b>
         </div>
         <div className="race-bar"><i style={{ width: Math.max(pct, 0.4) + "%", background: cat.color }} /></div>
