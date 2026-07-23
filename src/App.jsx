@@ -16,20 +16,27 @@ const VALIDITY_TEXT = "תוקף המודעה: ללא הגבלת זמן · מוב
 /* חלון החזר כספי (ימים) */
 const REFUND_DAYS = 21;
 
+/* הקטגוריות — שני עולמות: "מי" (האנשים) ו"מה" (הדברים). ה-id נשאר קבוע כדי לא לשבור מודעות קיימות */
 const CATEGORIES = [
-  { id: "realestate", name: 'נדל"ן',           icon: "🏠", color: "#7C3AED", example: "דירות חדשות בחיפה" },
-  { id: "auto",       name: "רכב",             icon: "🚗", color: "#4F46E5", example: "טויוטה קורולה 2023" },
-  { id: "food",       name: "מזון",            icon: "🍔", color: "#DB2777", example: "מסעדה חדשה נפתחה" },
-  { id: "pharm",      name: "פארם & ביוטי",    icon: "💄", color: "#EC4899", example: "מוצרי טיפוח וקוסמטיקה" },
-  { id: "cellular",   name: "סלולרי",          icon: "📱", color: "#0D9488", example: "אייפון במבצע השקה" },
-  { id: "vacation",   name: "חופשה",           icon: "✈️", color: "#0EA5E9", example: "חבילת נופש ביוון" },
-  { id: "fashion",    name: "אופנה",           icon: "👗", color: "#A21CAF", example: "קולקציית קיץ חדשה" },
-  { id: "jobs",       name: "דרושים",          icon: "💼", color: "#6366F1", example: "דרוש/ה איש/ת מכירות" },
-  { id: "courses",    name: "קורסים ולימודים", icon: "🎓", color: "#14B8A6", example: "קורס דיגיטל למתחילים" },
-  { id: "celebs",     name: "מפורסמים",        icon: "⭐", color: "#C026D3", example: "עקבו אחריי באינסטגרם" },
-  { id: "publicfig",  name: "נבחרי ציבור",     icon: "🏛️", color: "#1D4ED8", example: "חבר/ת מועצה — כאן בשבילכם" },
-  { id: "finance",    name: "פיננסים וביטוח",  icon: "📊", color: "#7E22CE", example: "ביטוח רכב משתלם" },
-  { id: "websites",   name: "אתרים ו-AI",      icon: "🌐", color: "#6D28D9", example: "בניית אתרים בעזרת AI" },
+  // ——— עולם ה"מי" — האנשים ———
+  { id: "celebs",     group: "mi", name: "הכוכבים",   icon: "⭐",  color: "#C026D3", desc: "יוצרים, משפיענים ואמנים",            example: "עקבו אחרי היוצר הבא של ישראל" },
+  { id: "publicfig",  group: "mi", name: "המשפיעים",  icon: "🏛️", color: "#1D4ED8", desc: "נבחרי ציבור ומובילי דעה",            example: "חבר/ת מועצה — כאן בשבילכם" },
+  { id: "jobs",       group: "mi", name: "המגייסים",  icon: "🤝",  color: "#6366F1", desc: "משרות, גיוסים ואנשים מוכשרים",       example: "המשרה הבאה שלך מחכה כאן" },
+  { id: "courses",    group: "mi", name: "המלמדים",   icon: "🧠",  color: "#14B8A6", desc: "ידע, קורסים והשראה",                 example: "הקורס שישנה לכם את הקריירה" },
+  // ——— עולם ה"מה" — הדברים ———
+  { id: "realestate", group: "ma", name: "הבית",      icon: "🏠",  color: "#7C3AED", desc: "נדל\"ן ומגורים",                     example: "דירות חדשות בחיפה" },
+  { id: "auto",       group: "ma", name: "הדרך",      icon: "🚗",  color: "#4F46E5", desc: "רכב ותחבורה",                        example: "טויוטה קורולה 2023" },
+  { id: "food",       group: "ma", name: "הטעם",      icon: "🍔",  color: "#DB2777", desc: "אוכל, מסעדות וחוויות קולינריות",     example: "המסעדה שכולם מדברים עליה" },
+  { id: "pharm",      group: "ma", name: "היופי",     icon: "✨",  color: "#EC4899", desc: "ביוטי, טיפוח ובריאות",               example: "מוצרי טיפוח וקוסמטיקה" },
+  { id: "cellular",   group: "ma", name: "החדשנות",   icon: "📱",  color: "#0D9488", desc: "טכנולוגיה וגאדג'טים",                example: "הגאדג'ט שאסור לפספס" },
+  { id: "vacation",   group: "ma", name: "החופש",     icon: "🌍",  color: "#0EA5E9", desc: "נופש, טיולים והרפתקאות",             example: "חבילת נופש ביוון" },
+  { id: "fashion",    group: "ma", name: "הסטייל",    icon: "👗",  color: "#A21CAF", desc: "אופנה ועיצוב",                       example: "קולקציית קיץ חדשה" },
+  { id: "finance",    group: "ma", name: "הביטחון",   icon: "💎",  color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם" },
+  { id: "websites",   group: "ma", name: "הדיגיטל",   icon: "🚀",  color: "#6D28D9", desc: "אתרים, AI ומיזמים",                  example: "בניית אתרים בעזרת AI" },
+];
+const GROUPS = [
+  { id: "mi", title: "מי", sub: "האנשים — מי שמוביל, יוצר, מלמד ומשפיע" },
+  { id: "ma", title: "מה", sub: "הדברים — מה שאנחנו בונים, טועמים, לובשים וחולמים" },
 ];
 const catById = (id) => CATEGORIES.find((c) => c.id === id);
 
@@ -363,31 +370,84 @@ function ResetPassword({ onDone }) {
 function Home({ ads, onPick }) {
   const live = ads.filter((a) => a.status === "live");
   const totalSold = live.reduce((s, a) => s + a.pixels, 0);
+  const SITE_PIXELS = CATEGORIES.length * CATEGORY_PIXELS;
+  const sitePct = (totalSold / SITE_PIXELS) * 100;
+  // הקטגוריה המובילה במרוץ
+  const leader = CATEGORIES.map((c) => ({ c, sold: live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0) }))
+    .sort((a, b) => b.sold - a.sold)[0];
+  // החשבון השקוף — מחושב מהלוחות עצמם
+  const math = useMemo(() => slotBreakdown(CATEGORIES[0].id), []);
+
+  const CatCard = ({ c }) => {
+    const sold = live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0);
+    const pct = Math.min(100, (sold / CATEGORY_PIXELS) * 100);
+    return (
+      <button key={c.id} className="cat" onClick={() => onPick(c)}>
+        <span className="cat-ic" style={{ background: c.color + "1A", color: c.color }}>{c.icon}</span>
+        <span className="cat-name">{c.name}</span>
+        <span className="cat-desc tiny muted">{c.desc}</span>
+        <span className="bar"><i style={{ width: pct + "%", background: c.color }} /></span>
+        <span className="cat-meta">{sold.toLocaleString("he-IL")} / 1,000,000 · {pct.toFixed(pct < 1 ? 2 : 1)}% בדרך למיליון</span>
+      </button>
+    );
+  };
+
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">מי ומה — כולם כאן</p>
-        <h1>תפסו את <span className="hl">המקום שלכם</span></h1>
-        <p className="sub">בוחרים קטגוריה, תופסים משבצת, מעלים תמונה וקישור — ומופיעים לכולם. מודעה החל מ־₪100 בלבד.</p>
+        <p className="eyebrow">🏁 המרוץ הישראלי למיליון פיקסלים · ₪1 לפיקסל</p>
+        <h1>תפסו את <span className="hl">המקום שלכם</span> בתמונה</h1>
+        <p className="sub">מיליון פיקסלים בכל קטגוריה. מי שתופס מקום — נכנס לפסיפס של "מי ומה" ונשאר בו לשנים. מוקדם יותר = מקומות טובים יותר. מודעה החל מ-₪100.</p>
         <div className="stats">
-          <div><b>{nis(totalSold)}</b><span>פיקסלים נמכרו</span></div>
-          <div><b>{CATEGORIES.length}</b><span>קטגוריות</span></div>
-          <div><b>מ־₪100</b><span>מחיר מודעה · ₪1 לפיקסל</span></div>
+          <div><b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו</span></div>
+          <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים בכל הפסיפס</span></div>
+          <div><b>מ-₪100</b><span>מחיר כניסה לתמונה</span></div>
         </div>
+        {leader?.sold > 0 && (
+          <p className="tiny race-note">🏆 מובילה כרגע במרוץ: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מהפסיפס כולו כבר תפוס</p>
+        )}
       </section>
-      <section className="cats">
-        {CATEGORIES.map((c) => {
-          const sold = live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0);
-          const pct = Math.min(100, (sold / 1_000_000) * 100);
-          return (
-            <button key={c.id} className="cat" onClick={() => onPick(c)}>
-              <span className="cat-ic" style={{ background: c.color + "1A", color: c.color }}>{c.icon}</span>
-              <span className="cat-name">{c.name}</span>
-              <span className="bar"><i style={{ width: pct + "%", background: c.color }} /></span>
-              <span className="cat-meta">{pct.toFixed(pct < 1 ? 2 : 1)}% מלא · {nis(sold)}</span>
-            </button>
-          );
-        })}
+
+      {GROUPS.map((g) => (
+        <section className="cats-group" key={g.id}>
+          <div className="group-head">
+            <h2><span className="hl">{g.title}</span></h2>
+            <p className="muted">{g.sub}</p>
+          </div>
+          <div className="cats">
+            {CATEGORIES.filter((c) => c.group === g.id).map((c) => <CatCard key={c.id} c={c} />)}
+          </div>
+        </section>
+      ))}
+
+      <section className="story">
+        <h2>📖 הסיפור מאחורי הפיקסלים</h2>
+        <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
+        <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פסיפס שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
+        <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פסיפס. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים. 💜</p>
+        <p className="story-cta"><b>תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו.</b></p>
+      </section>
+
+      <section className="math">
+        <h2>🧮 החשבון — שקוף עד הפיקסל האחרון</h2>
+        <p className="muted">אין כאן אותיות קטנות. ככה בנוי כל לוח:</p>
+        <div className="math-table">
+          {math.sizes.map(([px, count]) => (
+            <div className="math-row" key={px}>
+              <span>משבצות של {px.toLocaleString("he-IL")} פיקסלים ({nis(px)})</span>
+              <b>{count} משבצות = {(px * count).toLocaleString("he-IL")} פיקסלים</b>
+            </div>
+          ))}
+          <div className="math-row total">
+            <span>סה"כ בקטגוריה</span>
+            <b>{math.count} משבצות = {math.total.toLocaleString("he-IL")} פיקסלים בדיוק</b>
+          </div>
+          <div className="math-row total">
+            <span>ובכל הפסיפס</span>
+            <b>{CATEGORIES.length} קטגוריות × 1,000,000 = {SITE_PIXELS.toLocaleString("he-IL")} פיקסלים</b>
+          </div>
+        </div>
+        <p className="tiny muted">* הפירוט לפי קטגוריית "הבית"; ההרכב משתנה מעט בין קטגוריות, אבל הסכום תמיד בדיוק 1,000,000. כל משבצת בנויה מריבועים של 10×10 פיקסלים — הקטנה ביותר 100 פיקסלים (₪100), הגדולה ביותר 10,000 (₪10,000).</p>
       </section>
     </main>
   );
@@ -410,27 +470,53 @@ const SLOT_SIZES = [
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-// רשימת מקומות פנויים מגוונים לפריסה זורמת (יציבה לכל קטגוריה)
-const SLOT_COUNT = 150;
+// כל קטגוריה מכילה בדיוק מיליון פיקסלים. המשבצות נוצרות באותו סדר דטרמיניסטי
+// (אותו seed לפי הקטגוריה) — כך מודעות קיימות נשארות בדיוק במקומן.
+const CATEGORY_PIXELS = 1_000_000;
 function generateSlots(catId) {
   const rng = mulberry32(hashStr(catId));
-  const totW = SLOT_SIZES.reduce((t, s) => t + s.wt, 0);
   const slots = [];
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    let r = rng() * totW, pick = SLOT_SIZES[0];
-    for (const s of SLOT_SIZES) { r -= s.wt; if (r <= 0) { pick = s; break; } }
+  let remaining = CATEGORY_PIXELS, i = 0;
+  while (remaining > 0) {
+    const avail = SLOT_SIZES.filter((s) => s.pixels <= remaining);
+    const totW = avail.reduce((t, s) => t + s.wt, 0);
+    let r = rng() * totW, pick = avail[0];
+    for (const s of avail) { r -= s.wt; if (r <= 0) { pick = s; break; } }
     slots.push({ id: "s" + i, x: i, y: 0, w: pick.w * 10, h: pick.h * 10, pixels: pick.pixels });
+    remaining -= pick.pixels; i++;
   }
   return slots;
 }
+// סיכום שקוף: כמה משבצות מכל גודל יש בקטגוריה
+function slotBreakdown(catId) {
+  const bySize = new Map();
+  let count = 0, total = 0;
+  for (const s of generateSlots(catId)) {
+    count++; total += s.pixels;
+    bySize.set(s.pixels, (bySize.get(s.pixels) || 0) + 1);
+  }
+  return { count, total, sizes: [...bySize.entries()].sort((a, b) => b[0] - a[0]) };
+}
+// ציוני דרך במרוץ למיליון
+const MILESTONES = [
+  { at: 10_000,    name: "הניצוץ הראשון ✨" },
+  { at: 50_000,    name: "חמישים אלף 🔥" },
+  { at: 100_000,   name: "עשירית מהדרך 🎯" },
+  { at: 250_000,   name: "רבע מיליון 🚀" },
+  { at: 500_000,   name: "חצי מיליון 🏆" },
+  { at: 750_000,   name: "שלושת רבעי הדרך 💜" },
+  { at: 1_000_000, name: "מיליון. היסטוריה. 👑" },
+];
 /* ----------------------- לוח קטגוריה ----------------------- */
 function Board({ cat, ads, session, onChange }) {
   const catAds = ads.filter((a) => a.category === cat.id);
   const slots = useMemo(() => generateSlots(cat.id), [cat.id]);
   const live = catAds.filter((a) => a.status === "live");
   const sold = live.reduce((s, a) => s + a.pixels, 0);
-  const pct = (sold / 1_000_000) * 100;
+  const pct = (sold / CATEGORY_PIXELS) * 100;
   const [buying, setBuying] = useState(null);
+  const nextMilestone = MILESTONES.find((m) => m.at > sold);
+  const breakdown = useMemo(() => slotBreakdown(cat.id), [cat.id]);
 
   const adAt = (slot) => catAds.find((a) => a.x === slot.x && a.y === slot.y);
 
@@ -438,9 +524,20 @@ function Board({ cat, ads, session, onChange }) {
     <main className="board-wrap full">
       <div className="board-head">
         <div>
-          <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name}</h2>
-          <p className="muted">מודעות החל מ־₪100 (₪1 לפיקסל) · נתפסו כבר {sold.toLocaleString("he-IL")} פיקסלים · בחר/י משבצת פנויה</p>
+          <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name} <span className="tiny muted">· {cat.desc}</span></h2>
+          <p className="muted">מודעות החל מ-₪100 (₪1 לפיקסל) · תפסו את המקום שלכם בפסיפס</p>
         </div>
+      </div>
+
+      <div className="race">
+        <div className="race-top">
+          <span>🏁 המרוץ למיליון</span>
+          <b>{sold.toLocaleString("he-IL")} / 1,000,000 פיקסלים · {pct.toFixed(2)}%</b>
+        </div>
+        <div className="race-bar"><i style={{ width: Math.max(pct, 0.4) + "%", background: cat.color }} /></div>
+        {nextMilestone && (
+          <span className="tiny muted">עוד {(nextMilestone.at - sold).toLocaleString("he-IL")} פיקסלים לציון הדרך הבא: <b>{nextMilestone.name}</b></span>
+        )}
       </div>
 
       <div className="board-tip-row">
@@ -498,6 +595,10 @@ function Board({ cat, ads, session, onChange }) {
         })}
       </div>
 
+      <div className="board-math tiny muted">
+        🧮 בקטגוריה זו: <b>{breakdown.count} משבצות</b> שמסתכמות ב-<b>{breakdown.total.toLocaleString("he-IL")} פיקסלים בדיוק</b> · הקטנה ביותר 100 פיקסלים (₪100) · הגדולה ביותר 10,000 פיקסלים (₪10,000) · נתפסו {sold.toLocaleString("he-IL")}, נשארו {(CATEGORY_PIXELS - sold).toLocaleString("he-IL")}.
+      </div>
+
       {buying && (
         <SlotBuyModal slot={buying} cat={cat} session={session} ads={catAds}
           onClose={() => setBuying(null)} onDone={() => { setBuying(null); onChange(); }} />
@@ -513,6 +614,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
   const [phone, setPhone] = useState(session?.user?.user_metadata?.phone || "");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [imgDims, setImgDims] = useState(null); // מידות התמונה שהועלתה — לאזהרת יחס
   const [fileKey, setFileKey] = useState(0);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -521,14 +623,20 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
   const linkCheck = link.length > 9 ? checkLink(link) : null;
   const price = slot.pixels * PRICE;
   const taken = ads.some((a) => a.x === slot.x && a.y === slot.y);
+  const slotAR = slot.w / slot.h;
+  const ratioWarn = imgDims && (Math.max(imgDims.w / imgDims.h / slotAR, slotAR / (imgDims.w / imgDims.h)) > 1.3);
 
   const onFile = (e) => {
     const f = e.target.files?.[0]; if (!f) return; setErr("");
     if (!f.type.startsWith("image/")) return setErr("צריך קובץ תמונה.");
     if (f.size > 10 * 1024 * 1024) return setErr("עד 10MB.");
-    setFile(f); setPreview(URL.createObjectURL(f));
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = () => setImgDims({ w: im.width, h: im.height });
+    im.src = url;
+    setFile(f); setPreview(url);
   };
-  const removeFile = () => { if (preview) URL.revokeObjectURL(preview); setFile(null); setPreview(null); setFileKey((k) => k + 1); };
+  const removeFile = () => { if (preview) URL.revokeObjectURL(preview); setFile(null); setPreview(null); setImgDims(null); setFileKey((k) => k + 1); };
 
   const submit = async () => {
     if (!session) return alert("צריך להתחבר כדי לפרסם.");
@@ -588,11 +696,13 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
           {linkCheck?.ok && linkCheck.flags.length > 0 && <div className="warn">⚠️ לבדיקה: {linkCheck.flags.join(" · ")}</div>}
           <label className="fl">טלפון (וואטסאפ — לתיאום תשלום)
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-0000000" dir="ltr" inputMode="tel" /></label>
-          <label className="fl">תמונה (תיכווץ ל-{slot.w}×{slot.h})
+          <label className="fl">תמונה (המשבצת ביחס {slot.w}:{slot.h} — מומלץ להעלות תמונה ביחס דומה)
             <input key={fileKey} type="file" accept="image/*" onChange={onFile} /></label>
           {err && <div className="warn err">{err}</div>}
           {preview && <div className="preview">
-            <img src={preview} alt="תצוגה" style={{ aspectRatio: slot.w / slot.h }} />
+            {ratioWarn && <div className="warn">✂️ שימו לב: התמונה שלכם ({imgDims.w}×{imgDims.h}) ביחס שונה מהמשבצת ({slot.w}×{slot.h}) — החלקים החורגים ייחתכו אוטומטית למרכז. כך זה ייראה בלוח:</div>}
+            {!ratioWarn && <span className="tiny muted">כך התמונה תיראה בלוח:</span>}
+            <img className="crop-preview" src={preview} alt="תצוגה" style={{ aspectRatio: slot.w / slot.h }} />
             <button type="button" className="img-remove" onClick={removeFile}>הסר ובחר תמונה אחרת</button>
           </div>}
 
@@ -689,6 +799,7 @@ function EditAd({ ad, onDone }) {
   const [link, setLink] = useState(ad.link || "");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [imgDims, setImgDims] = useState(null);
   const [fileKey, setFileKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -699,16 +810,22 @@ function EditAd({ ad, onDone }) {
   const titleChanged = title.trim() && title.trim() !== (ad.title || "");
   const linkChanged = link && link !== (ad.link || "");
   const anyChange = titleChanged || linkChanged || file || removeImg;
+  const adAR = ad.w / ad.h;
+  const ratioWarn = imgDims && (Math.max(imgDims.w / imgDims.h / adAR, adAR / (imgDims.w / imgDims.h)) > 1.3);
 
   const onFile = (e) => {
     const f = e.target.files?.[0]; if (!f) return; setErr("");
     if (!f.type.startsWith("image/")) return setErr("צריך קובץ תמונה.");
     if (f.size > 10 * 1024 * 1024) return setErr("עד 10MB.");
-    setFile(f); setPreview(URL.createObjectURL(f));
+    const url = URL.createObjectURL(f);
+    const im = new Image();
+    im.onload = () => setImgDims({ w: im.width, h: im.height });
+    im.src = url;
+    setFile(f); setPreview(url);
   };
   const removeFile = () => {
     if (preview) URL.revokeObjectURL(preview);
-    setFile(null); setPreview(null); setFileKey((k) => k + 1);
+    setFile(null); setPreview(null); setImgDims(null); setFileKey((k) => k + 1);
   };
   const submit = async () => {
     if (!anyChange) return alert("לא בוצע שינוי.");
@@ -756,7 +873,9 @@ function EditAd({ ad, onDone }) {
       )}
       {err && <div className="warn err">{err}</div>}
       {preview && <div className="preview">
-        <img src={preview} alt="" style={{ aspectRatio: ad.w / ad.h }} />
+        {ratioWarn && <div className="warn">✂️ התמונה ({imgDims.w}×{imgDims.h}) ביחס שונה מהמשבצת ({ad.w}×{ad.h}) — היא תיחתך אוטומטית למרכז. כך זה ייראה:</div>}
+        {!ratioWarn && <span className="tiny muted">כך התמונה תיראה בלוח:</span>}
+        <img className="crop-preview" src={preview} alt="" style={{ aspectRatio: ad.w / ad.h }} />
         <button type="button" className="img-remove" onClick={removeFile}>הסר ובחר תמונה אחרת</button>
       </div>}
       <div className="row2">
