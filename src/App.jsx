@@ -21,7 +21,7 @@ const CATEGORIES = [
   // ——— עולם ה"מי" — האנשים ———
   { id: "celebs",     group: "mi", name: "הכוכבים",   icon: "⭐",  color: "#C026D3", desc: "יוצרים, משפיענים ואמנים",            example: "עקבו אחרי היוצר הבא של ישראל" },
   { id: "publicfig",  group: "mi", name: "המשפיעים",  icon: "🏛️", color: "#1D4ED8", desc: "נבחרי ציבור ומובילי דעה",            example: "חבר/ת מועצה — כאן בשבילכם" },
-  { id: "healers",    group: "mi", name: "המטפלים",   icon: "💜",  color: "#9333EA", desc: "מטפלים, מאמנים ואנשי רפואה",        example: "הטיפול שמחכה בדיוק לכם" },
+  { id: "founders",   group: "mi", name: "היזמים",    icon: "💡",  color: "#B45309", desc: "סטארטאפים, מייסדים ואנשי עסקים",    example: "הסטארטאפ הבא של ישראל" },
   { id: "experts",    group: "mi", name: "המומחים",   icon: "⚖️",  color: "#0F766E", desc: "עורכי דין, רואי חשבון ויועצים",     example: "המומחה שיפתור לכם את זה" },
   { id: "athletes",   group: "mi", name: "הספורטאים", icon: "🏅",  color: "#EA580C", desc: "ספורט, כושר ואורח חיים בריא",       example: "המאמן שישנה לכם את הגוף" },
   { id: "celebrating",group: "mi", name: "החוגגים",   icon: "🎉",  color: "#DB2777", desc: "ברכות, הצעות ואירועים מיוחדים",     example: "מזל טוב! חוגגים כאן לכולם" },

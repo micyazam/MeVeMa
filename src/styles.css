@@ -28,8 +28,9 @@ a{color:inherit;text-decoration:none}
 .stats b{display:block;font-family:'Rubik';font-weight:800;font-size:22px}
 .stats span{font-size:12.5px;color:var(--soft)}
 
-.cats{padding:6px 0 26px;display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px}
-.cat{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:right;display:flex;flex-direction:column;gap:9px;transition:.15s;align-items:flex-start}
+.cats{padding:6px 0 26px;display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.cat{width:196px;background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:right;display:flex;flex-direction:column;gap:9px;transition:.15s;align-items:flex-start}
+@media (max-width:700px){.cat{width:calc(50% - 8px)}}
 .cat:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(21,20,27,.1);border-color:transparent}
 .cat-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px}
 .cat-name{font-weight:700;font-size:16px}
