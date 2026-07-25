@@ -351,3 +351,4 @@ html.a11y-contrast.a11y-gray body{filter:contrast(1.25) grayscale(1)}
 html.a11y-links a,html.a11y-links .qlink{text-decoration:underline !important;background:#FFF3B0;color:#1D4ED8 !important}
 html.a11y-readable body,html.a11y-readable button,html.a11y-readable input,html.a11y-readable select{font-family:Arial,Helvetica,sans-serif !important;letter-spacing:.02em}
 html.a11y-noanim *{transition:none !important;animation:none !important}
+.f-chip:hover{background:var(--accent);color:#fff;cursor:pointer}
