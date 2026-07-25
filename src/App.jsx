@@ -21,9 +21,9 @@ const CATEGORIES = [
   // ——— עולם ה"מי" — האנשים ———
   { id: "celebs",     group: "mi", name: "הכוכבים",   icon: "⭐",  color: "#C026D3", desc: "יוצרים, משפיענים ואמנים",            example: "עקבו אחרי היוצר הבא של ישראל" },
   { id: "publicfig",  group: "mi", name: "המשפיעים",  icon: "🏛️", color: "#1D4ED8", desc: "נבחרי ציבור ומובילי דעה",            example: "חבר/ת מועצה — כאן בשבילכם" },
-  { id: "founders",   group: "mi", name: "היזמים",    icon: "💡",  color: "#B45309", desc: "סטארטאפים, מייסדים ואנשי עסקים",    example: "הסטארטאפ הבא של ישראל" },
+  { id: "founders",   group: "mi", name: "היזמים",    icon: "💡",  color: "#E11D48", desc: "סטארטאפים, מייסדים ואנשי עסקים",    example: "הסטארטאפ הבא של ישראל" },
   { id: "experts",    group: "mi", name: "המומחים",   icon: "⚖️",  color: "#0F766E", desc: "עורכי דין, רואי חשבון ויועצים",     example: "המומחה שיפתור לכם את זה" },
-  { id: "athletes",   group: "mi", name: "הספורטאים", icon: "🏅",  color: "#EA580C", desc: "ספורט, כושר ואורח חיים בריא",       example: "המאמן שישנה לכם את הגוף" },
+  { id: "athletes",   group: "mi", name: "הספורטאים", icon: "🏅",  color: "#16A34A", desc: "ספורט, כושר ואורח חיים בריא",       example: "המאמן שישנה לכם את הגוף" },
   { id: "celebrating",group: "mi", name: "החוגגים",   icon: "🎉",  color: "#DB2777", desc: "ברכות, הצעות ואירועים מיוחדים",     example: "מזל טוב! חוגגים כאן לכולם" },
   { id: "jobs",       group: "mi", name: "המגייסים",  icon: "🤝",  color: "#6366F1", desc: "משרות, גיוסים ואנשים מוכשרים",       example: "המשרה הבאה שלך מחכה כאן" },
   { id: "courses",    group: "mi", name: "המלמדים",   icon: "🧠",  color: "#14B8A6", desc: "ידע, קורסים והשראה",                 example: "הקורס שישנה לכם את הקריירה" },
@@ -37,7 +37,7 @@ const CATEGORIES = [
   { id: "fashion",    group: "ma", name: "הסטייל",    icon: "👗",  color: "#A21CAF", desc: "אופנה ועיצוב",                       example: "קולקציית קיץ חדשה" },
   { id: "finance",    group: "ma", name: "הכלכלה",    icon: "💎", color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם" },
   { id: "websites",   group: "ma", name: "הדיגיטל",   icon: "🚀",  color: "#6D28D9", desc: "אתרים, AI ומיזמים",                  example: "בניית אתרים בעזרת AI" },
-  { id: "luxury",     group: "ma", name: "היוקרה",    icon: "💍",  color: "#A16207", desc: "תכשיטים, שעונים ומותגי יוקרה",       example: "הטבעת שהיא חיכתה לה" },
+  { id: "luxury",     group: "ma", name: "היוקרה",    icon: "💍",  color: "#9333EA", desc: "תכשיטים, שעונים ומותגי יוקרה",       example: "הטבעת שהיא חיכתה לה" },
 ];
 const GROUPS = [
   { id: "mi", title: "מי", sub: "האנשים — מי שמוביל, יוצר, מלמד ומשפיע" },
@@ -112,6 +112,46 @@ function compressImage(file, w, h) {
     img.src = url;
   });
 }
+/* תעודת בעלות דיגיטלית על שטח פרסום — נוצרת בדפדפן ומורדת כתמונה לשיתוף */
+function downloadCertificate(a, c) {
+  const W = 1200, H = 850;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d");
+  const g = x.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#F8F3FD"); g.addColorStop(1, "#ECE2F7");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.strokeStyle = "#53196E"; x.lineWidth = 10; x.strokeRect(30, 30, W - 60, H - 60);
+  x.lineWidth = 2; x.strokeRect(52, 52, W - 104, H - 104);
+  x.textAlign = "center"; x.direction = "rtl";
+  x.fillStyle = "#53196E";
+  x.font = "800 28px Rubik, sans-serif";
+  x.fillText("מי ומה · משחק המיליון", W / 2, 128);
+  x.font = "900 66px Rubik, sans-serif";
+  x.fillText("📜 תעודת בעלות", W / 2, 225);
+  x.font = "700 30px Rubik, sans-serif";
+  x.fillText("על שטח פרסום בפסיפס הישראלי", W / 2, 278);
+  x.fillStyle = "#2D1851";
+  x.font = "900 46px Rubik, sans-serif";
+  x.fillText(a.title, W / 2, 382);
+  x.fillStyle = "#53196E";
+  x.font = "600 29px Rubik, sans-serif";
+  x.fillText(`${c?.icon || ""} קטגוריית ${c?.name || ""} · שטח פרסום מס' ${a.x}`, W / 2, 445);
+  x.fillText(`${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h})`, W / 2, 495);
+  x.fillText(`נרשם בפסיפס בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 545);
+  x.font = "800 27px Rubik, sans-serif";
+  x.fillText("בתוקף ללא הגבלת זמן · מובטח מינימום 3 שנים", W / 2, 622);
+  x.fillStyle = "#8470A0";
+  x.font = "600 23px Rubik, sans-serif";
+  x.fillText("כל פיקסל עובד פעמיים 💜", W / 2, 700);
+  x.fillText("מי ומה — כולם כאן", W / 2, 752);
+  cv.toBlob((b) => {
+    if (!b) return;
+    const u = URL.createObjectURL(b), l = document.createElement("a");
+    l.href = u; l.download = "תעודת-בעלות-מי-ומה.png"; l.click();
+    setTimeout(() => URL.revokeObjectURL(u), 3000);
+  }, "image/png");
+}
+
 async function uploadImage(blob) {
   const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
   const up = await supabase.storage.from(BUCKET).upload(name, blob, { contentType: "image/jpeg" });
@@ -404,8 +444,8 @@ function Home({ ads, onPick }) {
   return (
     <main>
       <section className="hero">
-        <p className="eyebrow">🧩 מי ומה — כולם כאן · תופסים משבצת פרסום · משלמים רק ₪1 לפיקסל</p>
-        <h1>תפסו את <span className="hl">המקום שלכם</span> בתמונה</h1>
+        <p className="eyebrow">🧩 מי ומה — כולם כאן · תופסים שטח פרסום · משלמים רק ₪1 לפיקסל</p>
+        <h1>תפסו את <span className="hl">שטח הפרסום</span> שלכם</h1>
         <p className="sub">מי שתופס מקום — מופיע ב"מי ומה" ונשאר בו לשנים. המקדימים תופסים את המקומות הטובים ביותר, השאר תופסים את מה שנשאר. מודעה החל מ-₪100 (100 פיקסלים).</p>
         <p className="sub join">הצטרפו למשחק — מספר המקומות מוגבל, כל הקודם זוכה. 🏆</p>
         <div className="stats">
@@ -434,7 +474,9 @@ function Home({ ads, onPick }) {
         <h2>📖 הסיפור מאחורי הפיקסלים</h2>
         <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
         <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פסיפס שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
-        <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פסיפס. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים. 💜</p>
+        <p><b>ולאן הולכים הפיקסלים? לחלום של 21 שנה.</b> כבר 21 שנים אני עוסקת בחיבור בין אנשים שמחפשים טיפול רגשי בקליניקה פרטית לבין המטפלים המקצועיים הנכונים עבורם. את כל הניסיון הזה יצקתי לאחרונה למיזם אחד: <a href="https://www.metaplim.info/" target="_blank" rel="noopener noreferrer">מטפלים אינפו</a> — שירות שמאתר לכל פונה את המטפל המדויק לו, מתוך מאגר מטפלים שכל אחד מהם עבר סינון קפדני ובדיקת תעודות. בלי לחכות חודשים בתור, בלי הגבלה על מספר המפגשים, ובלי רישום בתיק הרפואי המוסדי.</p>
+        <p>עכשיו אני בשלב הצמיחה: להביא למאגר את מיטב המטפלים בישראל ולהגיע לכל מי שזקוק להם. זה דורש תקציב אמיתי — וזו בדיוק ההשקעה לטווח ארוך שהפיקסלים האלה מממנים. המודל פשוט והוגן: אתם תופסים שטח פרסום בפסיפס ומקבלים חשיפה לשנים — ואני ממשיכה לבנות שירות שמקצר לאנשים את הדרך לטיפול שמתאים להם. <b>כל פיקסל עובד פעמיים. 💜</b></p>
+        <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פסיפס. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים.</p>
         <p className="story-cta"><b>אשמח שתהיו חלק מהסיפור שלי ותעזרו לי להשלים את הפאזל — תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו. 🧩</b></p>
       </section>
 
@@ -678,7 +720,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
             <p className="muted">אפשר לשלם עכשיו בקישור המאובטח (Grow) — המודעה תעלה לאוויר מיד לאחר אישור התוכן והתשלום. אישור יישלח אליך בוואטסאפ.</p>
             <a className="cta dark" style={{ display: "block", textAlign: "center", textDecoration: "none", marginBottom: 10 }}
               href={PAY_LINK} target="_blank" rel="noopener noreferrer">💳 מעבר לתשלום מאובטח · {nis(price)}</a>
-            <div className="warn ok-box">✨ {VALIDITY_TEXT}.<br />אפשר לעקוב, לערוך או לבטל בלשונית ״האזור שלי״.</div>
+            <div className="warn ok-box">✨ {VALIDITY_TEXT}.<br />לאחר הפרסום תוכלו להוריד <b>תעודת בעלות דיגיטלית 📜</b> על שטח הפרסום שלכם — מושלמת לשיתוף ברשתות.<br />אפשר לעקוב, לערוך או לבטל בלשונית ״האזור שלי״.</div>
             <button className="cta dark" onClick={onDone}>סיום</button>
           </div>
         ) : (<>
@@ -718,7 +760,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
 
           <div className="row2">
             <button className="btn-line ghost2" onClick={onClose}>ביטול</button>
-            <button className="cta" style={{ background: cat.color }} disabled={busy || !session || !file || !linkCheck?.ok} onClick={submit}>
+            <button className="cta go" disabled={busy || !session || !file || !linkCheck?.ok} onClick={submit}>
               {busy ? "שולח..." : "תשלום ושליחה לאישור · " + nis(price)}
             </button>
           </div>
@@ -789,6 +831,7 @@ function Account({ session, onChange }) {
                   </div>
                   {a.status !== "removed" && (
                     <div className="my-act">
+                      {a.status === "live" && <button className="cert" onClick={() => downloadCertificate(a, catById(a.category))}>📜 תעודת בעלות</button>}
                       <button className="ok" onClick={() => setEditing(a)}>עריכה</button>
                       <button className="no" onClick={() => remove(a)}>הסרה</button>
                     </div>

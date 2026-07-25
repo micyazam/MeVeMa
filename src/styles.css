@@ -83,6 +83,8 @@ a{color:inherit;text-decoration:none}
 
 .cta{display:block;width:100%;color:#fff;font-weight:700;font-size:15.5px;padding:13px;border-radius:12px;margin-top:4px}
 .cta.dark{background:var(--ink)} .cta:disabled{opacity:.45;cursor:not-allowed}
+.cta.go{background:linear-gradient(120deg,var(--accent),#C026D3);box-shadow:0 4px 14px rgba(108,45,144,.35)}
+.cta.go:hover:not(:disabled){filter:brightness(1.08)}
 .btn-line{display:block;width:100%;border:1.5px solid var(--ink);border-radius:11px;padding:11px;font-weight:700;font-size:14px;margin-bottom:8px;background:#fff}
 .btn-line.ghost2{border-color:var(--line);color:var(--soft)}
 .row2{display:flex;gap:8px;margin-top:8px}.row2>*{flex:1;margin:0}
@@ -313,3 +315,5 @@ a{color:inherit;text-decoration:none}
 .pw-row input{flex:1;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;background:#fff}
 .pw-row .cta{width:auto;padding:11px 16px;white-space:nowrap}
 .sub.join{font-weight:700;color:var(--accent);margin-top:2px}
+.story a{color:var(--accent);font-weight:700;text-decoration:underline}
+.my-act .cert{border-color:var(--accent);color:var(--accent);background:#F8F3FD}
