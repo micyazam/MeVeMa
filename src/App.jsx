@@ -151,7 +151,7 @@ function downloadCertificate(a, c) {
   x.font = "900 62px Rubik, sans-serif";
   x.fillText("תעודת בעלות", W / 2, 302);
   x.font = "700 27px Rubik, sans-serif";
-  x.fillText("על שטח פרסום ב"מי ומה" — שטחי הפרסום של ישראל", W / 2, 342);
+  x.fillText(`על שטח פרסום ב"מי ומה" — שטחי הפרסום של ישראל`, W / 2, 342);
   // קו מפריד עדין
   x.strokeStyle = FUCH; x.lineWidth = 2;
   x.beginPath(); x.moveTo(W / 2 - 90, 362); x.lineTo(W / 2 + 90, 362); x.stroke();
