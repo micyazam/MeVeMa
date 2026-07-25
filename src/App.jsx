@@ -377,7 +377,7 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
           <button onClick={nav.onContact}>צור קשר</button>
         </div>
         <p><strong>מי ומה</strong> · ₪1 לפיקסל · תוקף המודעות ללא הגבלת זמן — מינימום 3 שנים · ניתן לעדכן את המודעה · כל מודעה וכל עדכון עוברים אישור.</p>
-        <p className="tiny">מספר הפיקסלים מוגבל ל-1,000,000 פיקסלים בכל קטגוריה · אין החזרים כספיים לאחר 21 יום · אין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם היות הפרויקט ייחודי.</p>
+        <p className="tiny">מספר הפיקסלים מוגבל ל-1,000,000 פיקסלים בכל קטגוריה · אין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם היות הפרויקט ייחודי.</p>
       </footer>
       <AccessibilityMenu />
     </div>
@@ -551,9 +551,15 @@ function Home({ ads, onPick }) {
           💜 ב-2005 סטודנט מכר מיליון פיקסלים ונכנס להיסטוריה. עכשיו תורנו — אני מיכל, וזה הסיפור שלי ← לסיפור המלא
         </button>
         <div className="stats">
-          <div><b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו</span></div>
-          <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים ב"מי ומה"</span></div>
-          <div><b>מ-₪100</b><span>מחיר כניסה לתמונה</span></div>
+          <button onClick={() => document.querySelector(".cats-group")?.scrollIntoView({ behavior: "smooth" })}>
+            <b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו ← ללוחות</span>
+          </button>
+          <button onClick={() => document.querySelector(".math")?.scrollIntoView({ behavior: "smooth" })}>
+            <b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים ב"מי ומה" ← לחשבון המלא</span>
+          </button>
+          <button onClick={() => document.querySelector(".cats-group")?.scrollIntoView({ behavior: "smooth" })}>
+            <b>מ-₪100</b><span>מחיר כניסה לתמונה ← תפסו שטח</span>
+          </button>
         </div>
         {leader?.sold > 0 && (
           <p className="tiny race-note">🏆 מובילה כרגע במשחק: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מכלל שטחי הפרסום כבר תפוס</p>
