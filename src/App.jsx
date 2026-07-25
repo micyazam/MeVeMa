@@ -117,33 +117,78 @@ function downloadCertificate(a, c) {
   const W = 1200, H = 850;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const x = cv.getContext("2d");
+  const PUR = "#53196E", INK = "#2D1851", SOFT = "#8470A0", FUCH = "#C026D3";
+  const rr = (px, py, pw, ph, r) => { x.beginPath(); if (x.roundRect) x.roundRect(px, py, pw, ph, r); else x.rect(px, py, pw, ph); };
+  // רקע
   const g = x.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, "#F8F3FD"); g.addColorStop(1, "#ECE2F7");
+  g.addColorStop(0, "#FBF8FE"); g.addColorStop(1, "#EEE4F8");
   x.fillStyle = g; x.fillRect(0, 0, W, H);
-  x.strokeStyle = "#53196E"; x.lineWidth = 10; x.strokeRect(30, 30, W - 60, H - 60);
-  x.lineWidth = 2; x.strokeRect(52, 52, W - 104, H - 104);
-  x.textAlign = "center"; x.direction = "rtl";
-  x.fillStyle = "#53196E";
-  x.font = "800 28px Rubik, sans-serif";
-  x.fillText("מי ומה · משחק המיליון", W / 2, 128);
-  x.font = "900 66px Rubik, sans-serif";
-  x.fillText("📜 תעודת בעלות", W / 2, 225);
-  x.font = "700 30px Rubik, sans-serif";
-  x.fillText("על שטח פרסום בפאזל הישראלי", W / 2, 278);
-  x.fillStyle = "#2D1851";
-  x.font = "900 46px Rubik, sans-serif";
-  x.fillText(a.title, W / 2, 382);
-  x.fillStyle = "#53196E";
-  x.font = "600 29px Rubik, sans-serif";
-  x.fillText(`${c?.icon || ""} קטגוריית ${c?.name || ""} · שטח פרסום מס' ${a.x}`, W / 2, 445);
-  x.fillText(`${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h})`, W / 2, 495);
-  x.fillText(`נרשם בפאזל בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 545);
-  x.font = "800 27px Rubik, sans-serif";
-  x.fillText("בתוקף ללא הגבלת זמן · מובטח מינימום 3 שנים", W / 2, 622);
-  x.fillStyle = "#8470A0";
-  x.font = "600 23px Rubik, sans-serif";
-  x.fillText("כל פיקסל עובד פעמיים 💜", W / 2, 700);
-  x.fillText("מי ומה — כולם כאן", W / 2, 752);
+  // מסגרות
+  x.strokeStyle = PUR; x.lineWidth = 10; x.strokeRect(28, 28, W - 56, H - 56);
+  x.strokeStyle = FUCH; x.lineWidth = 1.5; x.strokeRect(46, 46, W - 92, H - 92);
+  x.strokeStyle = PUR; x.lineWidth = 2; x.strokeRect(54, 54, W - 108, H - 108);
+  // פסי פאזל — ריבועי פיקסלים צבעוניים למעלה ולמטה
+  const sq = 16, gap = 6, count = Math.floor((W - 200) / (sq + gap));
+  const seed = hashStr(a.title + a.x); const rngC = mulberry32(seed);
+  for (let i = 0; i < count; i++) {
+    const px = 100 + i * (sq + gap);
+    x.fillStyle = PASTELS[Math.floor(rngC() * PASTELS.length)];
+    rr(px, 74, sq, sq, 4); x.fill();
+    x.fillStyle = PASTELS[Math.floor(rngC() * PASTELS.length)];
+    rr(px, H - 90, sq, sq, 4); x.fill();
+  }
+  // לוגו מי ומה
+  const L = 86, lx = W / 2 - L / 2, ly = 116;
+  x.fillStyle = PUR; rr(lx, ly, L, L, 20); x.fill();
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.direction = "rtl";
+  x.font = "800 26px Rubik, sans-serif";
+  x.fillText("מי", W / 2, ly + 36);
+  x.fillText("ומה", W / 2, ly + 68);
+  // כותרות
+  x.fillStyle = PUR;
+  x.font = "800 24px Rubik, sans-serif";
+  x.fillText("מי ומה · משחק המיליון", W / 2, 236);
+  x.font = "900 62px Rubik, sans-serif";
+  x.fillText("תעודת בעלות", W / 2, 302);
+  x.font = "700 27px Rubik, sans-serif";
+  x.fillText("על שטח פרסום בפאזל הישראלי", W / 2, 342);
+  // קו מפריד עדין
+  x.strokeStyle = FUCH; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(W / 2 - 90, 362); x.lineTo(W / 2 + 90, 362); x.stroke();
+  // שם בעל השטח
+  x.fillStyle = INK; x.font = "900 48px Rubik, sans-serif";
+  x.fillText(a.title, W / 2, 424);
+  // צ'יפ פרטי השטח
+  const chipTxt = `${c?.icon || "🧩"} קטגוריית ${c?.name || ""} · שטח פרסום מס' ${a.x}`;
+  x.font = "700 26px Rubik, sans-serif";
+  const tw = x.measureText(chipTxt).width + 56;
+  x.fillStyle = "#EFE7F9"; rr(W / 2 - tw / 2, 448, tw, 46, 23); x.fill();
+  x.fillStyle = PUR; x.fillText(chipTxt, W / 2, 481);
+  // פרטים
+  x.font = "600 27px Rubik, sans-serif";
+  x.fillText(`${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h}) · השקעה של ${nis(a.pixels * PRICE)}`, W / 2, 542);
+  x.fillText(`נרשם בפאזל בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 586);
+  x.font = "800 26px Rubik, sans-serif";
+  x.fillText("בתוקף ללא הגבלת זמן · מובטח מינימום 3 שנים", W / 2, 646);
+  // חותם עגול (שמאל)
+  const cx = 205, cy = 712, R = 52;
+  x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fillStyle = "#F3EBFB"; x.fill();
+  x.lineWidth = 3; x.strokeStyle = PUR; x.stroke();
+  x.beginPath(); x.arc(cx, cy, R - 8, 0, Math.PI * 2); x.lineWidth = 1.5; x.strokeStyle = FUCH; x.stroke();
+  x.fillStyle = PUR;
+  x.font = "800 20px Rubik, sans-serif"; x.fillText("מי ומה", cx, cy - 4);
+  x.font = "700 15px Rubik, sans-serif"; x.fillText("₪1 לפיקסל", cx, cy + 20);
+  // חתימה (ימין)
+  const sx2 = W - 205;
+  x.strokeStyle = INK; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(sx2 - 110, 716); x.lineTo(sx2 + 110, 716); x.stroke();
+  x.fillStyle = INK; x.font = "italic 700 26px Rubik, sans-serif";
+  x.fillText("מיכל ילוז", sx2, 706);
+  x.fillStyle = SOFT; x.font = "600 18px Rubik, sans-serif";
+  x.fillText("מייסדת מי ומה", sx2, 742);
+  // שורת סיום
+  x.fillStyle = SOFT; x.font = "600 20px Rubik, sans-serif";
+  x.fillText("כל פיקסל עובד פעמיים 💜 · מי ומה — כולם כאן", W / 2, 742);
   cv.toBlob((b) => {
     if (!b) return;
     const u = URL.createObjectURL(b), l = document.createElement("a");
@@ -474,7 +519,7 @@ function Home({ ads, onPick }) {
         <h2>📖 הסיפור מאחורי הפיקסלים</h2>
         <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
         <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פאזל שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
-        <p><b>ולאן הולכים הפיקסלים? לחלום של 21 שנה.</b> כבר 21 שנים אני עוסקת בחיבור בין אנשים שמחפשים טיפול רגשי בקליניקה פרטית לבין המטפלים המקצועיים הנכונים עבורם. את כל הניסיון הזה יצקתי לאחרונה למיזם אחד: <a href="https://www.metaplim.info/" target="_blank" rel="noopener noreferrer">מטפלים אינפו</a> — שירות שמאתר לכל פונה את המטפל המדויק לו, מתוך מאגר מטפלים שכל אחד מהם עבר סינון קפדני ובדיקת תעודות. בלי לחכות חודשים בתור, בלי הגבלה על מספר המפגשים, ובלי רישום בתיק הרפואי המוסדי.</p>
+        <p><b>ולאן הולכים הפיקסלים? לחלום של 21 שנה.</b> כבר 21 שנים אני עוסקת בחיבור בין אנשים שמחפשים טיפול רגשי בקליניקה פרטית לבין המטפלים המקצועיים הנכונים עבורם. את כל הניסיון הזה יצקתי לאחרונה למיזם אחד: <a href="https://www.metaplim.info/" target="_blank" rel="noopener noreferrer">מטפלים אינפו</a> — כי לא צריך לחפש לבד. השירות מבצע לכל פונה התאמה אישית למטפל הרגשי שמתאים בדיוק לו, מתוך מאגר מטפלים מקצועיים שכל אחד מהם עבר סינון קפדני ואימות תעודות ידני. הכול בוואטסאפ, ללא התחייבות, תוך דקות — בלי לחכות חודשים בתור, בלי הגבלה על מספר המפגשים, ובלי רישום בתיק הרפואי המוסדי.</p>
         <p>עכשיו אני בשלב הצמיחה: להביא למאגר את מיטב המטפלים בישראל ולהגיע לכל מי שזקוק להם. זה דורש תקציב אמיתי — וזו בדיוק ההשקעה לטווח ארוך שהפיקסלים האלה מממנים. המודל פשוט והוגן: אתם תופסים שטח פרסום בפאזל ומקבלים חשיפה לשנים — ואני ממשיכה לבנות שירות שמקצר לאנשים את הדרך לטיפול שמתאים להם. <b>כל פיקסל עובד פעמיים. 💜</b></p>
         <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פאזל. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים.</p>
         <p className="story-cta"><b>אשמח שתהיו חלק מהסיפור שלי ותעזרו לי להשלים את הפאזל — תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו. 🧩</b></p>
