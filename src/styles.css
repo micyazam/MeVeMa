@@ -330,3 +330,20 @@ a{color:inherit;text-decoration:none}
 .move-slots{display:flex;flex-wrap:wrap;gap:6px}
 .move-slot{background:#fff;border:1.5px solid var(--accent);color:var(--accent);border-radius:9px;padding:6px 12px;font-weight:700;font-size:13px}
 .move-slot:hover{background:var(--accent);color:#fff}
+
+/* ---- תפריט נגישות ---- */
+.a11y{position:fixed;bottom:18px;left:18px;z-index:99}
+.a11y-btn{width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:26px;box-shadow:0 4px 16px rgba(83,25,110,.4);display:grid;place-items:center}
+.a11y-btn:hover{filter:brightness(1.1)}
+.a11y-panel{position:absolute;bottom:62px;left:0;width:240px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(45,24,81,.2);display:flex;flex-direction:column;gap:7px;text-align:right}
+.a11y-panel b{font-size:15px;margin-bottom:2px}
+.a11y-panel button{border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;font-weight:600;font-size:13.5px;background:#fff;text-align:right}
+.a11y-panel button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.a11y-row{display:flex;gap:6px}.a11y-row button{flex:1}
+.a11y-reset{color:#C0263B}
+html.a11y-contrast body{filter:contrast(1.25)}
+html.a11y-gray body{filter:grayscale(1)}
+html.a11y-contrast.a11y-gray body{filter:contrast(1.25) grayscale(1)}
+html.a11y-links a,html.a11y-links .qlink{text-decoration:underline !important;background:#FFF3B0;color:#1D4ED8 !important}
+html.a11y-readable body,html.a11y-readable button,html.a11y-readable input,html.a11y-readable select{font-family:Arial,Helvetica,sans-serif !important;letter-spacing:.02em}
+html.a11y-noanim *{transition:none !important;animation:none !important}

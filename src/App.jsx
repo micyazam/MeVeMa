@@ -301,6 +301,48 @@ export default function App() {
   );
 }
 
+/* תפריט נגישות — מופיע בכל עמודי האתר (חובה לפי תקנות הנגישות) */
+function AccessibilityMenu() {
+  const [open, setOpen] = useState(false);
+  const [prefs, setPrefs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("a11y") || "{}"); } catch { return {}; }
+  });
+  useEffect(() => {
+    const c = document.documentElement.classList;
+    c.toggle("a11y-contrast", !!prefs.contrast);
+    c.toggle("a11y-gray", !!prefs.gray);
+    c.toggle("a11y-links", !!prefs.links);
+    c.toggle("a11y-readable", !!prefs.readable);
+    c.toggle("a11y-noanim", !!prefs.noanim);
+    document.documentElement.style.fontSize = prefs.font && prefs.font !== 100 ? prefs.font + "%" : "";
+    try { localStorage.setItem("a11y", JSON.stringify(prefs)); } catch { /* פרטי */ }
+  }, [prefs]);
+  const t = (k) => setPrefs((p) => ({ ...p, [k]: !p[k] }));
+  const font = (d) => setPrefs((p) => ({ ...p, font: Math.min(140, Math.max(85, (p.font || 100) + d)) }));
+  const reset = () => setPrefs({});
+  return (
+    <div className="a11y">
+      <button className="a11y-btn" aria-label="תפריט נגישות" aria-expanded={open} title="תפריט נגישות" onClick={() => setOpen(!open)}>♿</button>
+      {open && (
+        <div className="a11y-panel" role="dialog" aria-label="הגדרות נגישות">
+          <b>הגדרות נגישות</b>
+          <div className="a11y-row">
+            <button onClick={() => font(10)}>א+ הגדלת טקסט</button>
+            <button onClick={() => font(-10)}>א- הקטנת טקסט</button>
+          </div>
+          <button className={prefs.contrast ? "on" : ""} onClick={() => t("contrast")}>ניגודיות גבוהה</button>
+          <button className={prefs.gray ? "on" : ""} onClick={() => t("gray")}>גווני אפור</button>
+          <button className={prefs.links ? "on" : ""} onClick={() => t("links")}>הדגשת קישורים</button>
+          <button className={prefs.readable ? "on" : ""} onClick={() => t("readable")}>גופן קריא</button>
+          <button className={prefs.noanim ? "on" : ""} onClick={() => t("noanim")}>עצירת אנימציות</button>
+          <button className="a11y-reset" onClick={reset}>איפוס הגדרות</button>
+          <p className="tiny muted">אתר "מי ומה" פועל להנגשת השירות לכלל האוכלוסייה. נתקלתם בקושי? נשמח לעזור: <span dir="ltr">{CONTACT.phone}</span> · <span dir="ltr">{CONTACT.email}</span></p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
   return (
     <div className="wm">
@@ -337,6 +379,7 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
         <p><strong>מי ומה</strong> · ₪1 לפיקסל · תוקף המודעות ללא הגבלת זמן — מינימום 3 שנים · ניתן לעדכן את המודעה · כל מודעה וכל עדכון עוברים אישור.</p>
         <p className="tiny">מספר הפיקסלים מוגבל ל-1,000,000 פיקסלים בכל קטגוריה · אין החזרים כספיים לאחר 21 יום · אין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם היות הפרויקט ייחודי.</p>
       </footer>
+      <AccessibilityMenu />
     </div>
   );
 }
@@ -1063,7 +1106,6 @@ function Terms() {
       <h3>11. יצירת קשר</h3>
       <p>בכל שאלה ניתן לפנות אל {CONTACT.owner}: <a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a> · <span dir="ltr">{CONTACT.phone}</span>.</p>
 
-      <p className="muted tiny doc-note">⚠️ מסמך זה הוא תבנית בסיסית ואינו ייעוץ משפטי. מומלץ שעו"ד יעבור עליו ויתאים אותו לעסק שלך לפני תחילת גבייה.</p>
     </main>
   );
 }
@@ -1105,7 +1147,6 @@ function Privacy() {
       <h3>10. שינויים</h3>
       <p>אנו רשאים לעדכן מדיניות זו מעת לעת. הגרסה העדכנית תפורסם בעמוד זה.</p>
 
-      <p className="muted tiny doc-note">⚠️ מסמך זה הוא תבנית בסיסית ואינו ייעוץ משפטי. מומלץ שעו"ד יעבור עליו ויתאים אותו לעסק שלך ולדרישות הדין לפני תחילת הפעילות.</p>
     </main>
   );
 }

@@ -1,22 +1,150 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
-    { "source": "/home", "destination": "/", "permanent": true },
-    { "source": "/index", "destination": "/", "permanent": true },
-    { "source": "/about", "destination": "/", "permanent": true },
-    { "source": "/about-us", "destination": "/", "permanent": true },
-    { "source": "/contact", "destination": "/", "permanent": true },
-    { "source": "/contact-us", "destination": "/", "permanent": true },
-    { "source": "/services", "destination": "/", "permanent": true },
-    { "source": "/gallery", "destination": "/", "permanent": true },
-    { "source": "/faq", "destination": "/", "permanent": true },
-    { "source": "/blog", "destination": "/", "permanent": true },
-    { "source": "/news", "destination": "/", "permanent": true },
-    { "source": "/products", "destination": "/", "permanent": true },
-    { "source": "/prices", "destination": "/", "permanent": true },
-    { "source": "/terms", "destination": "/", "permanent": true },
-    { "source": "/privacy", "destination": "/", "permanent": true }
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%91%D7%99%D7%A9%D7%A8%D7%90%D7%9C",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%98%D7%99%D7%A4%D7%95%D7%9C",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%99%D7%99%D7%A2%D7%95%D7%A5",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%90%D7%99%D7%9E%D7%95%D7%9F",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%98%D7%99%D7%A4%D7%95%D7%9C-%D7%A8%D7%92%D7%A9%D7%99",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%AA%D7%9B%D7%A0%D7%95%D7%9F-%D7%A4%D7%99%D7%A0%D7%A0%D7%A1%D7%99",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%A2%D7%99%D7%A6%D7%95%D7%91-%D7%92%D7%A8%D7%A4%D7%99",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%A9%D7%99%D7%95%D7%95%D7%A7-%D7%95%D7%93%D7%99%D7%92%D7%99%D7%98%D7%9C",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%98%D7%99%D7%A4%D7%95%D7%97-%D7%95%D7%99%D7%95%D7%A4%D7%99",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%A6%D7%9C%D7%9E%D7%99%D7%9D",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%90%D7%99%D7%A0%D7%93%D7%A7%D7%A1-%D7%90%D7%AA%D7%A8%D7%99-%D7%90%D7%99%D7%A0%D7%98%D7%A8%D7%A0%D7%98",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%90%D7%99%D7%A8%D7%95%D7%A2%D7%99%D7%9D",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%AA%D7%99%D7%99%D7%A8%D7%95%D7%AA-%D7%95%D7%A0%D7%95%D7%A4%D7%A9",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%A1%D7%93%D7%A0%D7%90%D7%95%D7%AA-%D7%95%D7%90%D7%99%D7%A8%D7%95%D7%A2%D7%99%D7%9D",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%9C%D7%91%D7%99%D7%AA-%D7%95%D7%9C%D7%A2%D7%A1%D7%A7",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%9E%D7%AA%D7%A0%D7%95%D7%AA",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%A2%D7%95%D7%A8%D7%9B%D7%99-%D7%93%D7%99%D7%9F",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%A8%D7%95%D7%90%D7%99-%D7%97%D7%A9%D7%91%D7%95%D7%9F",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9E%D7%99-%D7%95%D7%9E%D7%94-%D7%9C%D7%9B%D7%A1%D7%A3-%D7%A9%D7%9C%D7%9A",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%9B%D7%95%D7%9C%D7%9D-%D7%9B%D7%90%D7%9F-%D7%99%D7%93%D7%91%D7%A8%D7%95-%D7%90%D7%9C%D7%99%D7%9B%D7%9D",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%94%D7%A6%D7%98%D7%A8%D7%A4%D7%95%D7%AA-%D7%9E%D7%94%D7%99%D7%A8%D7%94",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%A4%D7%A8%D7%95%D7%9E%D7%95-1",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%A2%D7%9D-%D7%90%D7%AA%D7%A8-%D7%9E%D7%99-%D7%95%D7%9E%D7%94",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%90%D7%99%D7%A0%D7%93%D7%A7%D7%A1-%D7%90%D7%AA%D7%A8%D7%99%D7%9D",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/%D7%A4%D7%A8%D7%95%D7%9E%D7%95",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/terms",
+      "destination": "/",
+      "permanent": true
+    }
   ]
 }
