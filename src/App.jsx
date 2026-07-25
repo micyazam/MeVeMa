@@ -94,7 +94,11 @@ function compressImage(file, w, h) {
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(file);
     img.onload = () => {
-      const scale = 6, cw = Math.min(Math.round(w * scale), 480), ch = Math.min(Math.round(h * scale), 480);
+      // שומרים על היחס המדויק של המשבצת: מקטינים את שני הצדדים באותו פקטור
+      const scale = 6, cap = 960;
+      let cw = Math.round(w * scale), ch = Math.round(h * scale);
+      const f = Math.min(1, cap / Math.max(cw, ch));
+      cw = Math.max(1, Math.round(cw * f)); ch = Math.max(1, Math.round(ch * f));
       const c = document.createElement("canvas"); c.width = cw; c.height = ch;
       const ctx = c.getContext("2d"), ar = img.width / img.height, car = cw / ch;
       let sx, sy, sw, sh;
@@ -102,7 +106,7 @@ function compressImage(file, w, h) {
       else { sw = img.width; sh = sw / car; sx = 0; sy = (img.height - sh) / 2; }
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
       URL.revokeObjectURL(url);
-      c.toBlob((b) => (b ? res(b) : rej(new Error("blob"))), "image/jpeg", 0.72);
+      c.toBlob((b) => (b ? res(b) : rej(new Error("blob"))), "image/jpeg", 0.82);
     };
     img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("img")); };
     img.src = url;
