@@ -4,9 +4,19 @@
   ],
   "redirects": [
     { "source": "/home", "destination": "/", "permanent": true },
-    { "source": "/about", "destination": "/", "permanent": true },
-    { "source": "/contact", "destination": "/", "permanent": true },
     { "source": "/index", "destination": "/", "permanent": true },
-    { "source": "/index.html.old", "destination": "/", "permanent": true }
+    { "source": "/about", "destination": "/", "permanent": true },
+    { "source": "/about-us", "destination": "/", "permanent": true },
+    { "source": "/contact", "destination": "/", "permanent": true },
+    { "source": "/contact-us", "destination": "/", "permanent": true },
+    { "source": "/services", "destination": "/", "permanent": true },
+    { "source": "/gallery", "destination": "/", "permanent": true },
+    { "source": "/faq", "destination": "/", "permanent": true },
+    { "source": "/blog", "destination": "/", "permanent": true },
+    { "source": "/news", "destination": "/", "permanent": true },
+    { "source": "/products", "destination": "/", "permanent": true },
+    { "source": "/prices", "destination": "/", "permanent": true },
+    { "source": "/terms", "destination": "/", "permanent": true },
+    { "source": "/privacy", "destination": "/", "permanent": true }
   ]
 }
