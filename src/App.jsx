@@ -234,7 +234,7 @@ function findFreeSlot(w, h, ads) {
 
 async function fetchBoardAds() {
   const { data, error } = await supabase.from("public_ads")
-    .select("id,category,x,y,w,h,pixels,title,link,image_url,status");
+    .select("id,category,x,y,w,h,pixels,title,link,image_url,status,published_at");
   if (error) { console.error(error); return []; }
   return data || [];
 }
@@ -1204,6 +1204,48 @@ function AdminImgTools({ a, onDone }) {
   </>);
 }
 
+/* כלי העברה למנהלת — העברת שטח פרסום למיקום פנוי באותו גודל, גם בין קטגוריות */
+function AdminMove({ a, allAds, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [catSel, setCatSel] = useState(a.category);
+  const freeSlots = useMemo(() => {
+    if (!open) return [];
+    return generateSlots(catSel).filter((s) =>
+      s.w === a.w && s.h === a.h &&
+      !(catSel === a.category && s.x === a.x) &&
+      !allAds.some((o) => o.id !== a.id && o.category === catSel && o.x === s.x && o.status !== "removed")
+    );
+  }, [open, catSel, allAds, a]);
+  const move = async (slot) => {
+    const c = catById(catSel);
+    if (!confirm(`להעביר את "${a.title}" לשטח מס' ${slot.x} בקטגוריית ${c?.name}?`)) return;
+    const { error } = await supabase.from("ads").update({ category: catSel, x: slot.x, y: slot.y }).eq("id", a.id);
+    if (error) return alert("שגיאה: " + error.message);
+    setOpen(false); onDone();
+  };
+  return (
+    <div className="move-wrap">
+      <button className="ok" onClick={() => setOpen(!open)}>📍 העבר מיקום</button>
+      {open && (
+        <div className="move-panel">
+          <label className="tiny">לאיזו קטגוריה?
+            <select value={catSel} onChange={(e) => setCatSel(e.target.value)}>
+              {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}{c.id === a.category ? " (נוכחית)" : ""}</option>)}
+            </select>
+          </label>
+          <span className="tiny muted">שטחים פנויים בגודל {a.w}×{a.h} ({a.pixels.toLocaleString("he-IL")} פיקסלים): {freeSlots.length}</span>
+          <div className="move-slots">
+            {freeSlots.slice(0, 24).map((s) => (
+              <button key={s.id} className="move-slot" onClick={() => move(s)}>שטח {s.x}</button>
+            ))}
+            {freeSlots.length === 0 && <span className="tiny muted">אין שטח פנוי בגודל הזה בקטגוריה שנבחרה.</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminQueue() {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1366,6 +1408,7 @@ function AdminQueue() {
                     <button className="no" onClick={() => setStatus(a, "removed")}>הסר מהלוח</button>
                     <button className="no" onClick={() => remove(a)}>🗑 מחק לצמיתות</button></>}
                   {a.status !== "live" && a.status !== "removed" && <AdminImgTools a={a} onDone={load} />}
+                  {a.status !== "removed" && <AdminMove a={a} allAds={ads} onDone={load} />}
                   {a.status === "removed" && <button className="no" onClick={() => remove(a)}>🗑 מחק לצמיתות</button>}
                 </div>
               </div>
