@@ -129,7 +129,7 @@ function downloadCertificate(a, c) {
   x.font = "900 66px Rubik, sans-serif";
   x.fillText("📜 תעודת בעלות", W / 2, 225);
   x.font = "700 30px Rubik, sans-serif";
-  x.fillText("על שטח פרסום בפסיפס הישראלי", W / 2, 278);
+  x.fillText("על שטח פרסום בפאזל הישראלי", W / 2, 278);
   x.fillStyle = "#2D1851";
   x.font = "900 46px Rubik, sans-serif";
   x.fillText(a.title, W / 2, 382);
@@ -137,7 +137,7 @@ function downloadCertificate(a, c) {
   x.font = "600 29px Rubik, sans-serif";
   x.fillText(`${c?.icon || ""} קטגוריית ${c?.name || ""} · שטח פרסום מס' ${a.x}`, W / 2, 445);
   x.fillText(`${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h})`, W / 2, 495);
-  x.fillText(`נרשם בפסיפס בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 545);
+  x.fillText(`נרשם בפאזל בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 545);
   x.font = "800 27px Rubik, sans-serif";
   x.fillText("בתוקף ללא הגבלת זמן · מובטח מינימום 3 שנים", W / 2, 622);
   x.fillStyle = "#8470A0";
@@ -446,15 +446,15 @@ function Home({ ads, onPick }) {
       <section className="hero">
         <p className="eyebrow">🧩 מי ומה — כולם כאן · תופסים שטח פרסום · משלמים רק ₪1 לפיקסל</p>
         <h1>תפסו את <span className="hl">שטח הפרסום</span> שלכם</h1>
-        <p className="sub">מי שתופס מקום — מופיע ב"מי ומה" ונשאר בו לשנים. המקדימים תופסים את המקומות הטובים ביותר, השאר תופסים את מה שנשאר. מודעה החל מ-₪100 (100 פיקסלים).</p>
+        <p className="sub">מי שתופס מקום — מופיע ב"מי ומה" ונשאר בו לשנים. המקדימים תופסים את המקומות הטובים ביותר, השאר תופסים את מה שנשאר. שטח פרסום החל מ-₪100 (100 פיקסלים).</p>
         <p className="sub join">הצטרפו למשחק — מספר המקומות מוגבל, כל הקודם זוכה. 🏆</p>
         <div className="stats">
           <div><b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו</span></div>
-          <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים בכל הפסיפס</span></div>
+          <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים בכל הפאזל</span></div>
           <div><b>מ-₪100</b><span>מחיר כניסה לתמונה</span></div>
         </div>
         {leader?.sold > 0 && (
-          <p className="tiny race-note">🏆 מובילה כרגע במשחק: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מהפסיפס כולו כבר תפוס</p>
+          <p className="tiny race-note">🏆 מובילה כרגע במשחק: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מהפאזל כולו כבר תפוס</p>
         )}
       </section>
 
@@ -473,10 +473,10 @@ function Home({ ads, onPick }) {
       <section className="story">
         <h2>📖 הסיפור מאחורי הפיקסלים</h2>
         <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
-        <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פסיפס שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
+        <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פאזל שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
         <p><b>ולאן הולכים הפיקסלים? לחלום של 21 שנה.</b> כבר 21 שנים אני עוסקת בחיבור בין אנשים שמחפשים טיפול רגשי בקליניקה פרטית לבין המטפלים המקצועיים הנכונים עבורם. את כל הניסיון הזה יצקתי לאחרונה למיזם אחד: <a href="https://www.metaplim.info/" target="_blank" rel="noopener noreferrer">מטפלים אינפו</a> — שירות שמאתר לכל פונה את המטפל המדויק לו, מתוך מאגר מטפלים שכל אחד מהם עבר סינון קפדני ובדיקת תעודות. בלי לחכות חודשים בתור, בלי הגבלה על מספר המפגשים, ובלי רישום בתיק הרפואי המוסדי.</p>
-        <p>עכשיו אני בשלב הצמיחה: להביא למאגר את מיטב המטפלים בישראל ולהגיע לכל מי שזקוק להם. זה דורש תקציב אמיתי — וזו בדיוק ההשקעה לטווח ארוך שהפיקסלים האלה מממנים. המודל פשוט והוגן: אתם תופסים שטח פרסום בפסיפס ומקבלים חשיפה לשנים — ואני ממשיכה לבנות שירות שמקצר לאנשים את הדרך לטיפול שמתאים להם. <b>כל פיקסל עובד פעמיים. 💜</b></p>
-        <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פסיפס. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים.</p>
+        <p>עכשיו אני בשלב הצמיחה: להביא למאגר את מיטב המטפלים בישראל ולהגיע לכל מי שזקוק להם. זה דורש תקציב אמיתי — וזו בדיוק ההשקעה לטווח ארוך שהפיקסלים האלה מממנים. המודל פשוט והוגן: אתם תופסים שטח פרסום בפאזל ומקבלים חשיפה לשנים — ואני ממשיכה לבנות שירות שמקצר לאנשים את הדרך לטיפול שמתאים להם. <b>כל פיקסל עובד פעמיים. 💜</b></p>
+        <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פאזל. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים.</p>
         <p className="story-cta"><b>אשמח שתהיו חלק מהסיפור שלי ותעזרו לי להשלים את הפאזל — תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו. 🧩</b></p>
       </section>
 
@@ -495,7 +495,7 @@ function Home({ ads, onPick }) {
             <b>{math.count} משבצות = {math.total.toLocaleString("he-IL")} פיקסלים בדיוק</b>
           </div>
           <div className="math-row total">
-            <span>ובכל הפסיפס</span>
+            <span>ובכל הפאזל</span>
             <b>{CATEGORIES.length} קטגוריות × 1,000,000 = {SITE_PIXELS.toLocaleString("he-IL")} פיקסלים</b>
           </div>
         </div>
@@ -505,7 +505,7 @@ function Home({ ads, onPick }) {
   );
 }
 
-/* ----------------------- פסיפס מקומות פנויים ----------------------- */
+/* ----------------------- פאזל שטחי הפרסום ----------------------- */
 const PASTELS = ["#FBD5D5", "#FCE8C9", "#FAF3C5", "#D9F2D6", "#CCEFE7", "#CFE2FB", "#E2D8FB", "#F7D8EC", "#FBDCC6", "#D6EEF8"];
 const CELLS = 100; // 100x100 תאים (תא = 100 פיקסל)
 
@@ -577,7 +577,7 @@ function Board({ cat, ads, session, onChange }) {
       <div className="board-head">
         <div>
           <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name} <span className="tiny muted">· {cat.desc}</span></h2>
-          <p className="muted">מודעות החל מ-₪100 (₪1 לפיקסל) · תפסו את המקום שלכם בפסיפס</p>
+          <p className="muted">שטחי פרסום החל מ-₪100 (₪1 לפיקסל) · תפסו את שטח הפרסום שלכם בפאזל</p>
         </div>
       </div>
 
@@ -593,7 +593,7 @@ function Board({ cat, ads, session, onChange }) {
       </div>
 
       <div className="board-tip-row">
-        <p className="board-tip tiny muted">לוחצים על בלוק פנוי כדי לפרסם בו. הבלוקים הגדולים = יותר פיקסלים. גוללים למטה לעוד מקומות.</p>
+        <p className="board-tip tiny muted">לוחצים על שטח פרסום פנוי כדי לפרסם בו. השטחים הגדולים = יותר פיקסלים. גוללים למטה לעוד שטחים פנויים.</p>
       </div>
 
       <div className="flow-board">
@@ -633,12 +633,12 @@ function Board({ cat, ads, session, onChange }) {
               style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`, background: PASTELS[i % PASTELS.length] }}>
               {big ? (
                 <span className="slot-lbl">
-                  <b>אבחר מקום כאן</b>
+                  <b>אבחר שטח פרסום כאן</b>
                   <span>{slot.pixels.toLocaleString("he-IL")} פיקסלים</span>
                   <em>{nis(slot.pixels)}</em>
                 </span>
               ) : mid ? (
-                <span className="slot-lbl sm"><b>{slot.pixels.toLocaleString("he-IL")} פיקס׳</b><em>{nis(slot.pixels)}</em></span>
+                <span className="slot-lbl sm"><b>{slot.pixels.toLocaleString("he-IL")} פיקסלים</b><em>{nis(slot.pixels)}</em></span>
               ) : sm ? (
                 <span className="slot-lbl xs">{nis(slot.pixels)}</span>
               ) : null}
