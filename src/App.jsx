@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { supabase, isConfigured } from "./supabaseClient";
 
 /* ============================================================
-   מי ומה — לוח פיקסלים פרסומי · ₪1 לפיקסל · מודעה מ-₪100
+   מי ומה — שטחי פרסום בפיקסלים · ₪1 לפיקסל · שטח פרסום מ-₪100
    ============================================================ */
 
 const GRID = 1000, SNAP = 10, PRICE = 1, BUCKET = "ad-images";
@@ -523,7 +523,7 @@ function Home({ ads, onPick }) {
   // הקטגוריה המובילה במשחק
   const leader = CATEGORIES.map((c) => ({ c, sold: live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0) }))
     .sort((a, b) => b.sold - a.sold)[0];
-  // החשבון השקוף — מחושב מהלוחות עצמם
+  // החשבון השקוף — מחושב משטחי הפרסום עצמם
   const math = useMemo(() => slotBreakdown(CATEGORIES[0].id), []);
 
   const CatCard = ({ c }) => {
@@ -552,7 +552,7 @@ function Home({ ads, onPick }) {
         </button>
         <div className="stats">
           <button onClick={() => document.querySelector(".cats-group")?.scrollIntoView({ behavior: "smooth" })}>
-            <b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו ← ללוחות</span>
+            <b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו ← לשטחי הפרסום</span>
           </button>
           <button onClick={() => document.querySelector(".math")?.scrollIntoView({ behavior: "smooth" })}>
             <b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים ב"מי ומה" ← לחשבון המלא</span>
@@ -586,7 +586,7 @@ function Home({ ads, onPick }) {
             {foundersList(ads).map((f, i) => {
               const fc = catById(f.category);
               return (
-                <button key={i} className="f-chip" title={`לצפייה בלוח ${fc?.name}`} onClick={() => onPick(fc)}>
+                <button key={i} className="f-chip" title={`לצפייה בשטחי הפרסום של ${fc?.name}`} onClick={() => onPick(fc)}>
                   🏆 {f.title} · {fc?.icon} {fc?.name}
                 </button>
               );
@@ -608,7 +608,7 @@ function Home({ ads, onPick }) {
 
       <section className="math">
         <h2>🧮 החשבון — שקוף עד הפיקסל האחרון</h2>
-        <p className="muted">אין כאן אותיות קטנות. ככה בנוי כל לוח:</p>
+        <p className="muted">אין כאן אותיות קטנות. ככה בנויה כל קטגוריה:</p>
         <div className="math-table">
           {math.sizes.map(([px, count]) => (
             <div className="math-row" key={px}>
@@ -698,7 +698,7 @@ const MILESTONES = [
   { at: 750_000,   name: "שלושת רבעי הדרך 💜" },
   { at: 1_000_000, name: "מיליון. היסטוריה. 👑" },
 ];
-/* ----------------------- לוח קטגוריה ----------------------- */
+/* ----------------------- שטחי פרסום בקטגוריה ----------------------- */
 function Board({ cat, ads, session, onChange }) {
   const catAds = ads.filter((a) => a.category === cat.id);
   const slots = useMemo(() => generateSlots(cat.id), [cat.id]);
@@ -891,8 +891,8 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
             <input key={fileKey} type="file" accept="image/*" onChange={onFile} /></label>
           {err && <div className="warn err">{err}</div>}
           {preview && <div className="preview">
-            {ratioWarn && <div className="warn">✂️ שימו לב: התמונה שלכם ({imgDims.w}×{imgDims.h}) ביחס שונה מהמשבצת ({slot.w}×{slot.h}) — החלקים החורגים ייחתכו אוטומטית למרכז. כך זה ייראה בלוח:</div>}
-            {!ratioWarn && <span className="tiny muted">כך התמונה תיראה בלוח:</span>}
+            {ratioWarn && <div className="warn">✂️ שימו לב: התמונה שלכם ({imgDims.w}×{imgDims.h}) ביחס שונה מהמשבצת ({slot.w}×{slot.h}) — החלקים החורגים ייחתכו אוטומטית למרכז. כך זה ייראה בשטח הפרסום:</div>}
+            {!ratioWarn && <span className="tiny muted">כך התמונה תיראה בשטח הפרסום:</span>}
             <img className="crop-preview" src={preview} alt="תצוגה" style={{ aspectRatio: slot.w / slot.h }} />
             <button type="button" className="img-remove" onClick={removeFile}>הסר ובחר תמונה אחרת</button>
           </div>}
@@ -1066,7 +1066,7 @@ function EditAd({ ad, onDone }) {
       {err && <div className="warn err">{err}</div>}
       {preview && <div className="preview">
         {ratioWarn && <div className="warn">✂️ התמונה ({imgDims.w}×{imgDims.h}) ביחס שונה מהמשבצת ({ad.w}×{ad.h}) — היא תיחתך אוטומטית למרכז. כך זה ייראה:</div>}
-        {!ratioWarn && <span className="tiny muted">כך התמונה תיראה בלוח:</span>}
+        {!ratioWarn && <span className="tiny muted">כך התמונה תיראה בשטח הפרסום:</span>}
         <img className="crop-preview" src={preview} alt="" style={{ aspectRatio: ad.w / ad.h }} />
         <button type="button" className="img-remove" onClick={removeFile}>הסר ובחר תמונה אחרת</button>
       </div>}
@@ -1459,7 +1459,7 @@ function AdminQueue() {
                   {a.status === "live" && <>
                     <button className="wa" onClick={() => whatsapp(a)}>וואטסאפ</button>
                     <AdminImgTools a={a} onDone={load} />
-                    <button className="no" onClick={() => setStatus(a, "removed")}>הסר מהלוח</button>
+                    <button className="no" onClick={() => setStatus(a, "removed")}>הסר מהאתר</button>
                     <button className="no" onClick={() => remove(a)}>🗑 מחק לצמיתות</button></>}
                   {a.status !== "live" && a.status !== "removed" && <AdminImgTools a={a} onDone={load} />}
                   {a.status !== "removed" && <AdminMove a={a} allAds={ads} onDone={load} />}
