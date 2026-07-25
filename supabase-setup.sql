@@ -89,7 +89,7 @@ create policy "admin delete" on public.ads
 -- 4) תצוגה ציבורית ללוח — בלי טלפון, רק מה שמותר להציג
 drop view if exists public.public_ads;
 create view public.public_ads as
-  select id, category, x, y, w, h, pixels, title, link, image_url, status
+  select id, category, x, y, w, h, pixels, title, link, image_url, status, published_at
   from public.ads
   where status in ('pending', 'awaiting_payment', 'live');
 grant select on public.public_ads to anon, authenticated;

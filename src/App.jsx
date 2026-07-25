@@ -113,7 +113,7 @@ function compressImage(file, w, h) {
   });
 }
 /* תעודת בעלות דיגיטלית על שטח פרסום — נוצרת בדפדפן ומורדת כתמונה לשיתוף */
-function downloadCertificate(a, c) {
+function downloadCertificate(a, c, rank) {
   const W = 1200, H = 850;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const x = cv.getContext("2d");
@@ -189,6 +189,17 @@ function downloadCertificate(a, c) {
   // שורת סיום
   x.fillStyle = SOFT; x.font = "600 20px Rubik, sans-serif";
   x.fillText("כל פיקסל עובד פעמיים 💜 · מי ומה — כולם כאן", W / 2, 742);
+  // תג מייסד/ת — לעשרים הראשונים
+  if (rank) {
+    x.save(); x.translate(180, 165); x.rotate(-0.18);
+    const bt = `🏆 מייסד/ת ${rank}/${FOUNDERS_COUNT}`;
+    x.font = "800 24px Rubik, sans-serif";
+    const bw = x.measureText(bt).width + 44;
+    x.fillStyle = FUCH; rr(-bw / 2, -25, bw, 50, 25); x.fill();
+    x.fillStyle = "#fff"; x.textAlign = "center"; x.direction = "rtl";
+    x.fillText(bt, 0, 8);
+    x.restore();
+  }
   cv.toBlob((b) => {
     if (!b) return;
     const u = URL.createObjectURL(b), l = document.createElement("a");
@@ -282,7 +293,7 @@ export default function App() {
         : view === "terms" ? <Terms />
         : view === "privacy" ? <Privacy />
         : view === "contact" ? <Contact />
-        : view === "account" ? (session ? <Account session={session} onChange={reload} /> : <AuthPage onAuthed={() => setView("account")} />)
+        : view === "account" ? (session ? <Account session={session} onChange={reload} allAds={boardAds} /> : <AuthPage onAuthed={() => setView("account")} />)
         : view === "admin" ? <Admin session={session} isAdmin={isAdmin} onAuth={() => setView("auth")} />
         : view === "home" ? <Home ads={boardAds} onPick={(c) => { setCat(c); setView("board"); }} />
         : <Board cat={cat} ads={boardAds} session={session} onChange={reload} />}
@@ -493,6 +504,9 @@ function Home({ ads, onPick }) {
         <h1>תפסו את <span className="hl">שטח הפרסום</span> שלכם</h1>
         <p className="sub">מי שתופס מקום — מופיע ב"מי ומה" ונשאר בו לשנים. המקדימים תופסים את המקומות הטובים ביותר, השאר תופסים את מה שנשאר. שטח פרסום החל מ-₪100 (100 פיקסלים).</p>
         <p className="sub join">הצטרפו למשחק — מספר המקומות מוגבל, כל הקודם זוכה. 🏆</p>
+        <button className="story-teaser" onClick={() => document.getElementById("story")?.scrollIntoView({ behavior: "smooth" })}>
+          💜 ב-2005 סטודנט מכר מיליון פיקסלים ונכנס להיסטוריה. עכשיו תורנו — אני מיכל, וזה הסיפור שלי ← לסיפור המלא
+        </button>
         <div className="stats">
           <div><b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו</span></div>
           <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים ב"מי ומה"</span></div>
@@ -515,7 +529,18 @@ function Home({ ads, onPick }) {
         </section>
       ))}
 
-      <section className="story">
+      <section className="founders">
+        <h2>🏆 קיר המייסדים</h2>
+        <p className="muted">{FOUNDERS_COUNT} שטחי הפרסום הראשונים שעולים לאוויר נרשמים כאן לתמיד, ומקבלים תג מייסד/ת על תעודת הבעלות.</p>
+        {foundersList(ads).length > 0 && (
+          <div className="founders-list">
+            {foundersList(ads).map((f, i) => <span key={i} className="f-chip">🏆 {f.title}</span>)}
+          </div>
+        )}
+        <p className="accent f-left"><b>נותרו {FOUNDERS_COUNT - foundersList(ads).length} מקומות מייסדים בלבד</b></p>
+      </section>
+
+      <section className="story" id="story">
         <h2>📖 הסיפור מאחורי הפיקסלים</h2>
         <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
         <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פאזל שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
@@ -594,6 +619,19 @@ function slotBreakdown(catId) {
   }
   return { count, total, sizes: [...bySize.entries()].sort((a, b) => b[0] - a[0]) };
 }
+/* מייסדים — 20 שטחי הפרסום הראשונים שעולים לאוויר */
+const FOUNDERS_COUNT = 20;
+function foundersList(allAds) {
+  return (allAds || [])
+    .filter((a) => a.status === "live")
+    .sort((a, b) => new Date(a.published_at || 0) - new Date(b.published_at || 0))
+    .slice(0, FOUNDERS_COUNT);
+}
+function founderRank(ad, allAds) {
+  const idx = foundersList(allAds).findIndex((f) => f.category === ad.category && f.x === ad.x);
+  return idx > -1 ? idx + 1 : null;
+}
+
 // ציוני דרך במשחק המיליון
 const MILESTONES = [
   { at: 10_000,    name: "הניצוץ הראשון ✨" },
@@ -815,7 +853,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
   );
 }
 /* ----------------------- האזור שלי (מפרסם) ----------------------- */
-function Account({ session, onChange }) {
+function Account({ session, onChange, allAds }) {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -876,7 +914,7 @@ function Account({ session, onChange }) {
                   </div>
                   {a.status !== "removed" && (
                     <div className="my-act">
-                      {a.status === "live" && <button className="cert" onClick={() => downloadCertificate(a, catById(a.category))}>📜 תעודת בעלות</button>}
+                      {a.status === "live" && <button className="cert" onClick={() => downloadCertificate(a, catById(a.category), founderRank(a, allAds))}>📜 תעודת בעלות</button>}
                       <button className="ok" onClick={() => setEditing(a)}>עריכה</button>
                       <button className="no" onClick={() => remove(a)}>הסרה</button>
                     </div>
