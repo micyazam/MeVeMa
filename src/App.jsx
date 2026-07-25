@@ -151,7 +151,7 @@ function downloadCertificate(a, c) {
   x.font = "900 62px Rubik, sans-serif";
   x.fillText("תעודת בעלות", W / 2, 302);
   x.font = "700 27px Rubik, sans-serif";
-  x.fillText("על שטח פרסום בפאזל הישראלי", W / 2, 342);
+  x.fillText("על שטח פרסום ב"מי ומה" — שטחי הפרסום של ישראל", W / 2, 342);
   // קו מפריד עדין
   x.strokeStyle = FUCH; x.lineWidth = 2;
   x.beginPath(); x.moveTo(W / 2 - 90, 362); x.lineTo(W / 2 + 90, 362); x.stroke();
@@ -167,7 +167,7 @@ function downloadCertificate(a, c) {
   // פרטים
   x.font = "600 27px Rubik, sans-serif";
   x.fillText(`${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h}) · השקעה של ${nis(a.pixels * PRICE)}`, W / 2, 542);
-  x.fillText(`נרשם בפאזל בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 586);
+  x.fillText(`נרשם ב"מי ומה" בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 586);
   x.font = "800 26px Rubik, sans-serif";
   x.fillText("בתוקף ללא הגבלת זמן · מובטח מינימום 3 שנים", W / 2, 646);
   // חותם עגול (שמאל)
@@ -495,11 +495,11 @@ function Home({ ads, onPick }) {
         <p className="sub join">הצטרפו למשחק — מספר המקומות מוגבל, כל הקודם זוכה. 🏆</p>
         <div className="stats">
           <div><b>{totalSold.toLocaleString("he-IL")}</b><span>פיקסלים כבר נתפסו</span></div>
-          <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים בכל הפאזל</span></div>
+          <div><b>{SITE_PIXELS.toLocaleString("he-IL")}</b><span>פיקסלים ב"מי ומה"</span></div>
           <div><b>מ-₪100</b><span>מחיר כניסה לתמונה</span></div>
         </div>
         {leader?.sold > 0 && (
-          <p className="tiny race-note">🏆 מובילה כרגע במשחק: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מהפאזל כולו כבר תפוס</p>
+          <p className="tiny race-note">🏆 מובילה כרגע במשחק: <b>{leader.c.icon} {leader.c.name}</b> עם {leader.sold.toLocaleString("he-IL")} פיקסלים · {sitePct.toFixed(3)}% מכלל שטחי הפרסום כבר תפוס</p>
         )}
       </section>
 
@@ -520,7 +520,7 @@ function Home({ ads, onPick }) {
         <p>ב-2005, סטודנט בן 21 בשם אלכס טיו פתח דף אינטרנט עם מיליון פיקסלים ומכר כל פיקסל בדולר, כדי לממן את הלימודים שלו. תוך חמישה חודשים הדף התמלא כולו — והפך לאגדת אינטרנט. הדף חי עד היום, וכל מי שקנה בו פיקסל אז — עדיין שם.</p>
         <p>עשרים שנה אחרי, כאן בישראל, אני מרימה את הגרסה שלנו — עם טוויסט: לא דף אחד, אלא פאזל שלם של <b>"מי"</b> ו<b>"מה"</b> — האנשים שלנו והדברים שאנחנו יוצרים. אני מיכל, אמא ויזמית, וזה החלום שאני בונה בשביל הילדים שלי — פיקסל אחרי פיקסל.</p>
         <p><b>ולאן הולכים הפיקסלים? לחלום של 21 שנה.</b> כבר 21 שנים אני עוסקת בחיבור בין אנשים שמחפשים טיפול רגשי בקליניקה פרטית לבין המטפלים המקצועיים הנכונים עבורם. את כל הניסיון הזה יצקתי לאחרונה למיזם אחד: <a href="https://www.metaplim.info/" target="_blank" rel="noopener noreferrer">מטפלים אינפו</a> — כי לא צריך לחפש לבד. השירות מבצע לכל פונה התאמה אישית למטפל הרגשי שמתאים בדיוק לו, מתוך מאגר מטפלים מקצועיים שכל אחד מהם עבר סינון קפדני ואימות תעודות ידני. הכול בוואטסאפ, ללא התחייבות, תוך דקות — בלי לחכות חודשים בתור, בלי הגבלה על מספר המפגשים, ובלי רישום בתיק הרפואי המוסדי.</p>
-        <p>עכשיו אני בשלב הצמיחה: להביא למאגר את מיטב המטפלים בישראל ולהגיע לכל מי שזקוק להם. זה דורש תקציב אמיתי — וזו בדיוק ההשקעה לטווח ארוך שהפיקסלים האלה מממנים. המודל פשוט והוגן: אתם תופסים שטח פרסום בפאזל ומקבלים חשיפה לשנים — ואני ממשיכה לבנות שירות שמקצר לאנשים את הדרך לטיפול שמתאים להם. <b>כל פיקסל עובד פעמיים. 💜</b></p>
+        <p>עכשיו אני בשלב הצמיחה: להביא למאגר את מיטב המטפלים בישראל ולהגיע לכל מי שזקוק להם. זה דורש תקציב אמיתי — וזו בדיוק ההשקעה לטווח ארוך שהפיקסלים האלה מממנים. המודל פשוט והוגן: אתם תופסים שטח פרסום ב"מי ומה" ומקבלים חשיפה לשנים — ואני ממשיכה לבנות שירות שמקצר לאנשים את הדרך לטיפול שמתאים להם. <b>כל פיקסל עובד פעמיים. 💜</b></p>
         <p>מי שתופס כאן מקום לא סתם מפרסם — הוא נכנס לתמונה הקבוצתית. העסק הקטן ליד הכוכב הגדול, המורה ליד חברת הענק, כולם באותו פאזל. וכשקטגוריה מגיעה למיליון — היא מלאה. מי שבפנים, בפנים.</p>
         <p className="story-cta"><b>אשמח שתהיו חלק מהסיפור שלי ותעזרו לי להשלים את הפאזל — תפסו את המקום שלכם לפני שמישהו אחר יתפוס אותו. 🧩</b></p>
       </section>
@@ -540,7 +540,7 @@ function Home({ ads, onPick }) {
             <b>{math.count} משבצות = {math.total.toLocaleString("he-IL")} פיקסלים בדיוק</b>
           </div>
           <div className="math-row total">
-            <span>ובכל הפאזל</span>
+            <span>ובכל "מי ומה"</span>
             <b>{CATEGORIES.length} קטגוריות × 1,000,000 = {SITE_PIXELS.toLocaleString("he-IL")} פיקסלים</b>
           </div>
         </div>
@@ -622,7 +622,7 @@ function Board({ cat, ads, session, onChange }) {
       <div className="board-head">
         <div>
           <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name} <span className="tiny muted">· {cat.desc}</span></h2>
-          <p className="muted">שטחי פרסום החל מ-₪100 (₪1 לפיקסל) · תפסו את שטח הפרסום שלכם בפאזל</p>
+          <p className="muted">שטחי פרסום החל מ-₪100 (₪1 לפיקסל) · תפסו את שטח הפרסום שלכם ב"מי ומה"</p>
         </div>
       </div>
 
