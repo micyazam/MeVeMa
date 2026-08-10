@@ -1,8 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://www.mevema.co.il/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
+  <url><loc>https://www.mevema.co.il/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.mevema.co.il/c/celebs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/publicfig</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/founders</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/experts</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/athletes</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/celebrating</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/jobs</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/courses</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/realestate</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/auto</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/food</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/pharm</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/cellular</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/vacation</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/fashion</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/finance</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/websites</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/c/luxury</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.mevema.co.il/terms</loc><priority>0.3</priority></url>
+  <url><loc>https://www.mevema.co.il/privacy</loc><priority>0.3</priority></url>
 </urlset>

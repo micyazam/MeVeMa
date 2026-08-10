@@ -19,25 +19,25 @@ const REFUND_DAYS = 21;
 /* הקטגוריות — שני עולמות: "מי" (האנשים) ו"מה" (הדברים). ה-id נשאר קבוע כדי לא לשבור מודעות קיימות */
 const CATEGORIES = [
   // ——— עולם ה"מי" — האנשים ———
-  { id: "celebs",     group: "mi", name: "הכוכבים",   icon: "⭐",  color: "#C026D3", desc: "יוצרים, משפיענים ואמנים",            example: "עקבו אחרי היוצר הבא של ישראל" },
-  { id: "publicfig",  group: "mi", name: "המשפיעים",  icon: "🏛️", color: "#1D4ED8", desc: "נבחרי ציבור ומובילי דעה",            example: "חבר/ת מועצה — כאן בשבילכם" },
-  { id: "founders",   group: "mi", name: "היזמים",    icon: "💡",  color: "#E11D48", desc: "סטארטאפים, מייסדים ואנשי עסקים",    example: "הסטארטאפ הבא של ישראל" },
-  { id: "experts",    group: "mi", name: "המומחים",   icon: "⚖️",  color: "#0F766E", desc: "עורכי דין, רואי חשבון ויועצים",     example: "המומחה שיפתור לכם את זה" },
-  { id: "athletes",   group: "mi", name: "הספורטאים", icon: "🏅",  color: "#16A34A", desc: "ספורט, כושר ואורח חיים בריא",       example: "המאמן שישנה לכם את הגוף" },
-  { id: "celebrating",group: "mi", name: "החוגגים",   icon: "🎉",  color: "#DB2777", desc: "ברכות, הצעות ואירועים מיוחדים",     example: "מזל טוב! חוגגים כאן לכולם" },
-  { id: "jobs",       group: "mi", name: "המגייסים",  icon: "🤝",  color: "#6366F1", desc: "משרות, גיוסים ואנשים מוכשרים",       example: "המשרה הבאה שלך מחכה כאן" },
-  { id: "courses",    group: "mi", name: "המלמדים",   icon: "🧠",  color: "#14B8A6", desc: "ידע, קורסים והשראה",                 example: "הקורס שישנה לכם את הקריירה" },
+  { id: "celebs",     group: "mi", name: "הכוכבים",   icon: "⭐",  color: "#C026D3", desc: "יוצרים, משפיענים ואמנים",            example: "עקבו אחרי היוצר הבא של ישראל", seo: "פרסום ליוצרים, משפיענים ואמנים שרוצים להגדיל חשיפה ועוקבים. שטח פרסום קבוע לפרופיל, לערוץ או למותג האישי שלכם — במקום קמפיינים שנעלמים, נוכחות שנשארת." },
+  { id: "publicfig",  group: "mi", name: "המשפיעים",  icon: "🏛️", color: "#1D4ED8", desc: "נבחרי ציבור ומובילי דעה",            example: "חבר/ת מועצה — כאן בשבילכם", seo: "פרסום לנבחרי ציבור, מועמדים ומובילי דעה. שטח פרסום שמחבר את הקהל שלכם לעמוד, למצע או לערוץ הקשר — נוכחות דיגיטלית קבועה לאורך זמן." },
+  { id: "founders",   group: "mi", name: "היזמים",    icon: "💡",  color: "#E11D48", desc: "סטארטאפים, מייסדים ואנשי עסקים",    example: "הסטארטאפ הבא של ישראל", seo: "פרסום לסטארטאפים, יזמים ומייסדים. שטחי פרסום להשקת מיזם, לגיוס משתמשים ראשונים או להצגת החברה — כי מי שמקדים, בולט." },
+  { id: "experts",    group: "mi", name: "המומחים",   icon: "⚖️",  color: "#0F766E", desc: "עורכי דין, רואי חשבון ויועצים",     example: "המומחה שיפתור לכם את זה", seo: "פרסום לעורכי דין, רואי חשבון ויועצים. שטח פרסום מקצועי שמוביל ישירות לאתר או לוואטסאפ שלכם — דרך משתלמת לפרסום מומחים ובעלי מקצוע." },
+  { id: "athletes",   group: "mi", name: "הספורטאים", icon: "🏅",  color: "#16A34A", desc: "ספורט, כושר ואורח חיים בריא",       example: "המאמן שישנה לכם את הגוף", seo: "פרסום למאמני כושר, סטודיואים, חוגים ומותגי ספורט. שטחי פרסום לעולם הספורט ואורח החיים הבריא — הלקוח הבא שלכם כבר מחפש אתכם." },
+  { id: "celebrating",group: "mi", name: "החוגגים",   icon: "🎉",  color: "#DB2777", desc: "ברכות, הצעות ואירועים מיוחדים",     example: "מזל טוב! חוגגים כאן לכולם", seo: "ברכות, הצעות נישואין, ימי הולדת ואירועים — שטח פרסום שהוא גם מתנה. הפתעה שנשארת באוויר שנים, עם תעודת בעלות מעוצבת לשיתוף." },
+  { id: "jobs",       group: "mi", name: "המגייסים",  icon: "🤝",  color: "#6366F1", desc: "משרות, גיוסים ואנשים מוכשרים",       example: "המשרה הבאה שלך מחכה כאן", seo: "פרסום משרות וגיוס עובדים. שטח פרסום לחברות שמגייסות ולמעסיקים שמחפשים כישרונות — מודעת דרושים שלא נקברת בפיד אחרי יום." },
+  { id: "courses",    group: "mi", name: "המלמדים",   icon: "🧠",  color: "#14B8A6", desc: "ידע, קורסים והשראה",                 example: "הקורס שישנה לכם את הקריירה", seo: "פרסום לקורסים, מרצים ובתי ספר. שטחי פרסום לעולם הידע וההכשרה — הדרך להביא תלמידים חדשים בלי תקציב פרסום חודשי." },
   // ——— עולם ה"מה" — הדברים ———
-  { id: "realestate", group: "ma", name: "הבית",      icon: "🏠",  color: "#7C3AED", desc: "נדל\"ן ומגורים",                     example: "דירות חדשות בחיפה" },
-  { id: "auto",       group: "ma", name: "הדרך",      icon: "🚗",  color: "#4F46E5", desc: "רכב ותחבורה",                        example: "טויוטה קורולה 2023" },
-  { id: "food",       group: "ma", name: "הטעם",      icon: "🍔",  color: "#DB2777", desc: "אוכל, מסעדות וחוויות קולינריות",     example: "המסעדה שכולם מדברים עליה" },
-  { id: "pharm",      group: "ma", name: "היופי",     icon: "✨",  color: "#EC4899", desc: "ביוטי, טיפוח ובריאות",               example: "מוצרי טיפוח וקוסמטיקה" },
-  { id: "cellular",   group: "ma", name: "החדשנות",   icon: "📱",  color: "#0D9488", desc: "טכנולוגיה וגאדג'טים",                example: "הגאדג'ט שאסור לפספס" },
-  { id: "vacation",   group: "ma", name: "החופש",     icon: "🌍",  color: "#0EA5E9", desc: "נופש, טיולים והרפתקאות",             example: "חבילת נופש ביוון" },
-  { id: "fashion",    group: "ma", name: "הסטייל",    icon: "👗",  color: "#A21CAF", desc: "אופנה ועיצוב",                       example: "קולקציית קיץ חדשה" },
-  { id: "finance",    group: "ma", name: "הכלכלה",    icon: "💎", color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם" },
-  { id: "websites",   group: "ma", name: "הדיגיטל",   icon: "🚀",  color: "#6D28D9", desc: "אתרים, AI ומיזמים",                  example: "בניית אתרים בעזרת AI" },
-  { id: "luxury",     group: "ma", name: "היוקרה",    icon: "💍",  color: "#9333EA", desc: "תכשיטים, שעונים ומותגי יוקרה",       example: "הטבעת שהיא חיכתה לה" },
+  { id: "realestate", group: "ma", name: "הבית",      icon: "🏠",  color: "#7C3AED", desc: "נדל\"ן ומגורים",                     example: "דירות חדשות בחיפה", seo: "פרסום נדל"ן: פרויקטים, מתווכים ודירות למכירה ולהשכרה. שטח פרסום קבוע לנכסים שלכם — חלופה משתלמת לפרסום נדל"ן יקר." },
+  { id: "auto",       group: "ma", name: "הדרך",      icon: "🚗",  color: "#4F46E5", desc: "רכב ותחבורה",                        example: "טויוטה קורולה 2023", seo: "פרסום רכב: סוכנויות, מגרשים, מוסכים ואביזרים. שטחי פרסום לעולם הרכב והתחבורה במחיר של פעם אחת — בלי עלות חודשית." },
+  { id: "food",       group: "ma", name: "הטעם",      icon: "🍔",  color: "#DB2777", desc: "אוכל, מסעדות וחוויות קולינריות",     example: "המסעדה שכולם מדברים עליה", seo: "פרסום למסעדות, בתי קפה, קייטרינג ומעדניות. שטח פרסום שמוביל ישירות לתפריט או להזמנת מקום — פרסום אוכל שעובד בשבילכם מסביב לשעון." },
+  { id: "pharm",      group: "ma", name: "היופי",     icon: "✨",  color: "#EC4899", desc: "ביוטי, טיפוח ובריאות",               example: "מוצרי טיפוח וקוסמטיקה", seo: "פרסום לעולם היופי: קוסמטיקאיות, מספרות, קליניקות אסתטיקה ומותגי טיפוח. שטחי פרסום לביוטי ובריאות שמביאים לקוחות חדשים." },
+  { id: "cellular",   group: "ma", name: "החדשנות",   icon: "📱",  color: "#0D9488", desc: "טכנולוגיה וגאדג'טים",                example: "הגאדג'ט שאסור לפספס", seo: "פרסום לטכנולוגיה וגאדג'טים: חנויות סלולר, מעבדות תיקון ומוצרי חדשנות. שטח פרסום לעסקים שחיים את הדיגיטל." },
+  { id: "vacation",   group: "ma", name: "החופש",     icon: "🌍",  color: "#0EA5E9", desc: "נופש, טיולים והרפתקאות",             example: "חבילת נופש ביוון", seo: "פרסום לתיירות ונופש: צימרים, מלונות, סוכני נסיעות וחוויות. שטחי פרסום שמזמינים את החופשה הבאה — נוכחות קבועה לעסק התיירותי שלכם." },
+  { id: "fashion",    group: "ma", name: "הסטייל",    icon: "👗",  color: "#A21CAF", desc: "אופנה ועיצוב",                       example: "קולקציית קיץ חדשה", seo: "פרסום אופנה: מעצבים, בוטיקים וחנויות אונליין. שטח פרסום לקולקציה שלכם — במה קבועה במקום מודעה חולפת." },
+  { id: "finance",    group: "ma", name: "הכלכלה",    icon: "💎", color: "#7E22CE", desc: "פיננסים, ביטוח והשקעות",             example: "ביטוח רכב משתלם", seo: "פרסום לפיננסים וביטוח: סוכני ביטוח, יועצי משכנתאות והשקעות. שטחי פרסום לעולם הכלכלה שבונים אמון ונוכחות לאורך שנים." },
+  { id: "websites",   group: "ma", name: "הדיגיטל",   icon: "🚀",  color: "#6D28D9", desc: "אתרים, AI ומיזמים",                  example: "בניית אתרים בעזרת AI", seo: "פרסום לעולם הדיגיטל: בוני אתרים, סוכנויות, מפתחי AI ומיזמים. שטח פרסום במקום שבו כולם מחפשים את הדבר הבא." },
+  { id: "luxury",     group: "ma", name: "היוקרה",    icon: "💍",  color: "#9333EA", desc: "תכשיטים, שעונים ומותגי יוקרה",       example: "הטבעת שהיא חיכתה לה", seo: "פרסום למותגי יוקרה: תכשיטים, שעונים ומוצרי פרימיום. שטחי פרסום לקהל שמחפש את המיוחד — כי יוקרה מגיעה עם נוכחות." },
 ];
 const GROUPS = [
   { id: "mi", title: "מי", sub: "האנשים — מי שמוביל, יוצר, מלמד ומשפיע" },
@@ -241,9 +241,20 @@ async function fetchBoardAds() {
 const hasUpdate = (a) => a.pending_title != null || a.pending_link != null || a.pending_image_url != null;
 
 /* ============================================================ */
+/* --- ניתוב: כתובת אמיתית לכל תצוגה (SEO) --- */
+const VIEW_PATHS = { home: "/", terms: "/terms", privacy: "/privacy", contact: "/contact", account: "/account", admin: "/admin", auth: "/auth", reset: "/reset" };
+function pathFor(view, cat) { return view === "board" && cat ? `/c/${cat.id}` : (VIEW_PATHS[view] || "/"); }
+function parsePath(pathname) {
+  const m = pathname.match(/^\/c\/([a-z]+)/i);
+  if (m) { const c = catById(m[1].toLowerCase()); if (c) return { view: "board", cat: c }; }
+  const v = Object.keys(VIEW_PATHS).find((k) => VIEW_PATHS[k] === pathname);
+  return { view: v || "home", cat: null };
+}
+
 export default function App() {
-  const [view, setView] = useState("home");
-  const [cat, setCat] = useState(null);
+  const initialRoute = parsePath(window.location.pathname);
+  const [view, setView] = useState(initialRoute.view);
+  const [cat, setCat] = useState(initialRoute.cat);
   const [boardAds, setBoardAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
@@ -271,18 +282,50 @@ export default function App() {
     supabase.rpc("is_admin").then(({ data }) => setIsAdmin(Boolean(data)));
   }, [session]);
 
+  // ניווט: מעדכן תצוגה + כתובת בדפדפן
+  const go = useCallback((v, c = null) => {
+    setView(v); setCat(c);
+    const p = pathFor(v, c);
+    if (window.location.pathname !== p) window.history.pushState({}, "", p);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
+  // כפתור "אחורה" בדפדפן מחזיר לתצוגה הקודמת
+  useEffect(() => {
+    const onPop = () => { const r = parsePath(window.location.pathname); setView(r.view); setCat(r.cat); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // כותרת, תיאור וקנוני ייחודיים לכל עמוד (SEO)
+  useEffect(() => {
+    const desc = document.querySelector('meta[name="description"]');
+    const canon = document.querySelector('link[rel="canonical"]');
+    if (view === "board" && cat) {
+      document.title = `${cat.name} — שטחי פרסום ב"מי ומה" · ₪1 לפיקסל`;
+      desc?.setAttribute("content", `שטח פרסום בקטגוריית ${cat.name} (${cat.desc}): ${cat.seo || ""} החל מ-₪100, ₪1 לפיקסל, מיליון פיקסלים בקטגוריה — כל הקודם זוכה.`);
+    } else if (view === "terms") { document.title = "תנאי שימוש — מי ומה · שטחי פרסום"; }
+    else if (view === "privacy") { document.title = "מדיניות פרטיות — מי ומה · שטחי פרסום"; }
+    else if (view === "contact") { document.title = "צור קשר — מי ומה · שטחי פרסום"; }
+    else {
+      document.title = "מי ומה — שטחי פרסום · ₪1 לפיקסל · כולם כאן";
+      desc?.setAttribute("content", "תפסו את שטח הפרסום שלכם ב'מי ומה' — שטחי פרסום בפיקסלים לפי קטגוריות. ₪1 לפיקסל, שטח פרסום מ-₪100, מיליון פיקסלים בכל קטגוריה. כל הקודם זוכה.");
+    }
+    canon?.setAttribute("href", "https://www.mevema.co.il" + pathFor(view, cat));
+  }, [view, cat]);
+
   if (!isConfigured) return <Shell><SetupNeeded /></Shell>;
 
   const nav = {
-    onHome: () => setView("home"),
-    onTerms: () => setView("terms"),
-    onPrivacy: () => setView("privacy"),
-    onContact: () => setView("contact"),
-    onAccount: () => setView(session ? "account" : "auth"),
-    onAdmin: () => setView("admin"),
-    onAuth: () => setView("auth"),
-    onLogout: () => supabase.auth.signOut().then(() => setView("home")),
-    onPickCat: (c) => { setCat(c); setView("board"); },
+    onHome: () => go("home"),
+    onTerms: () => go("terms"),
+    onPrivacy: () => go("privacy"),
+    onContact: () => go("contact"),
+    onAccount: () => go(session ? "account" : "auth"),
+    onAdmin: () => go("admin"),
+    onAuth: () => go("auth"),
+    onLogout: () => supabase.auth.signOut().then(() => go("home")),
+    onPickCat: (c) => go("board", c),
   };
 
   return (
@@ -296,7 +339,7 @@ export default function App() {
         : view === "account" ? (session ? <Account session={session} onChange={reload} allAds={boardAds} /> : <AuthPage onAuthed={() => setView("account")} />)
         : view === "admin" ? <Admin session={session} isAdmin={isAdmin} onAuth={() => setView("auth")} />
         : view === "home" ? <Home ads={boardAds} onPick={(c) => { setCat(c); setView("board"); }} />
-        : <Board cat={cat} ads={boardAds} session={session} onChange={reload} />}
+        : <Board cat={cat} ads={boardAds} session={session} onChange={reload} onPickCat={nav.onPickCat} />}
     </Shell>
   );
 }
@@ -362,10 +405,10 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
         </header>
         <div className="catbar">
           {CATEGORIES.map((c) => (
-            <button key={c.id} className={"catchip" + (activeCat?.id === c.id ? " on" : "")}
-              onClick={() => nav.onPickCat(c)} style={activeCat?.id === c.id ? { borderColor: c.color, color: c.color } : undefined}>
+            <a key={c.id} href={`/c/${c.id}`} className={"catchip" + (activeCat?.id === c.id ? " on" : "")}
+              onClick={(e) => { e.preventDefault(); nav.onPickCat(c); }} style={activeCat?.id === c.id ? { borderColor: c.color, color: c.color } : undefined}>
               <span>{c.icon}</span> {c.name}
-            </button>
+            </a>
           ))}
         </div>
       </div>
@@ -531,13 +574,13 @@ function Home({ ads, onPick }) {
     const sold = live.filter((a) => a.category === c.id).reduce((s, a) => s + a.pixels, 0);
     const pct = Math.min(100, (sold / CATEGORY_PIXELS) * 100);
     return (
-      <button key={c.id} className="cat" onClick={() => onPick(c)}>
+      <a key={c.id} className="cat" href={`/c/${c.id}`} onClick={(e) => { e.preventDefault(); onPick(c); }}>
         <span className="cat-ic" style={{ background: c.color + "1A", color: c.color }}>{c.icon}</span>
         <span className="cat-name">{c.name}</span>
         <span className="cat-desc tiny muted">{c.desc}</span>
         <span className="bar"><i style={{ width: pct + "%", background: c.color }} /></span>
         <span className="cat-meta">{sold.toLocaleString("he-IL")} / 1,000,000 · {pct.toFixed(pct < 1 ? 2 : 1)}% בדרך למיליון</span>
-      </button>
+      </a>
     );
   };
 
@@ -587,9 +630,10 @@ function Home({ ads, onPick }) {
             {foundersList(ads).map((f, i) => {
               const fc = catById(f.category);
               return (
-                <button key={i} className="f-chip" title={`לצפייה בשטחי הפרסום של ${fc?.name}`} onClick={() => onPick(fc)}>
+                <a key={i} className="f-chip" href={`/c/${fc?.id}`} title={`לצפייה בשטחי הפרסום של ${fc?.name}`}
+                  onClick={(e) => { e.preventDefault(); onPick(fc); }}>
                   🏆 {f.title} · {fc?.icon} {fc?.name}
-                </button>
+                </a>
               );
             })}
           </div>
@@ -736,7 +780,7 @@ const MILESTONES = [
   { at: 1_000_000, name: "מיליון. היסטוריה. 👑" },
 ];
 /* ----------------------- שטחי פרסום בקטגוריה ----------------------- */
-function Board({ cat, ads, session, onChange }) {
+function Board({ cat, ads, session, onChange, onPickCat }) {
   const catAds = ads.filter((a) => a.category === cat.id);
   const slots = useMemo(() => generateSlots(cat.id), [cat.id]);
   const live = catAds.filter((a) => a.status === "live");
@@ -826,6 +870,27 @@ function Board({ cat, ads, session, onChange }) {
       <div className="board-math tiny muted">
         🧮 בקטגוריה זו: <b>{breakdown.count} משבצות</b> שמסתכמות ב-<b>{breakdown.total.toLocaleString("he-IL")} פיקסלים בדיוק</b> · הקטנה ביותר 100 פיקסלים (₪100) · הגדולה ביותר 10,000 פיקסלים (₪10,000) · נתפסו {sold.toLocaleString("he-IL")}, נשארו {(CATEGORY_PIXELS - sold).toLocaleString("he-IL")}.
       </div>
+
+      <section className="cat-seo">
+        <h3>שטח פרסום בקטגוריית {cat.name} — {cat.desc}</h3>
+        <p>{cat.seo}</p>
+        <p>איך זה עובד? בוחרים שטח פרסום פנוי בגודל שמתאים לתקציב — מ-100 פיקסלים ב-₪100 ועד 10,000 פיקסלים — מעלים תמונה וקישור, והמודעה שלכם עולה לאוויר לתקופה של 3 שנים לפחות, ללא הגבלת זמן וללא תשלום חודשי. בקטגוריה בדיוק 1,000,000 פיקסלים, וכשהיא מתמלאת — היא נסגרת.</p>
+        <div className="cat-related">
+          <span className="tiny muted">שטחי פרסום בקטגוריות נוספות:</span>
+          <div className="cat-links">
+            {CATEGORIES.filter((c) => c.id !== cat.id)
+              .sort((a, b) => (a.group === cat.group ? -1 : 0) - (b.group === cat.group ? -1 : 0))
+              .slice(0, 6)
+              .map((c) => (
+                <a key={c.id} href={`/c/${c.id}`} className="cat-link"
+                  onClick={(e) => { e.preventDefault(); onPickCat?.(c); }}>
+                  {c.icon} פרסום ב{c.name}
+                </a>
+              ))}
+            <a href="/" className="cat-link home-link">🧩 לכל שטחי הפרסום</a>
+          </div>
+        </div>
+      </section>
 
       {buying && (
         <SlotBuyModal slot={buying} cat={cat} session={session} ads={catAds}

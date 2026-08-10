@@ -364,3 +364,14 @@ html.a11y-noanim *{transition:none !important;animation:none !important}
 .about summary{font-weight:700;cursor:pointer;font-size:14.5px}
 .about details[open] summary{color:var(--accent);margin-bottom:6px}
 .about details p{margin:0}
+
+/* ---- תוכן וקישורים בעמוד קטגוריה ---- */
+.cat-seo{max-width:1060px;margin:0 auto 40px;padding:20px 18px;border-top:1px solid var(--line)}
+.cat-seo h3{margin:0 0 8px;font-size:18px;color:var(--accent)}
+.cat-seo p{font-size:14px;line-height:1.75;margin:0 0 10px;max-width:760px}
+.cat-related{margin-top:14px}
+.cat-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.cat-link{display:inline-block;background:var(--surf);border:1.5px solid var(--line);border-radius:20px;padding:7px 14px;font-weight:600;font-size:13.5px;color:var(--ink);text-decoration:none}
+.cat-link:hover{border-color:var(--accent);color:var(--accent)}
+.cat-link.home-link{border-color:var(--accent);color:var(--accent)}
+a.cat,a.f-chip,a.catchip{text-decoration:none}
