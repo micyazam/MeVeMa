@@ -8,7 +8,7 @@ import { supabase, isConfigured } from "./supabaseClient";
 const GRID = 1000, SNAP = 10, PRICE = 1, BUCKET = "ad-images";
 
 /* >>> פרטי קשר <<< */
-const CONTACT = { email: "mic.yazam@gmail.com", phone: "051-5003870", company: "מי ומה", owner: "מיכל ילוז" };
+const CONTACT = { email: "Metaplim.info@gmail.com", phone: "050-9990449", whatsapp: "051-5003870", company: "מי ומה", owner: "מיכל ילוז" };
 /* קישור תשלום מאובטח (Grow) */
 const PAY_LINK = "https://pay.grow.link/MTM0OTA~83ec0fabecf56858a2ecaa31635c211c-Mzc1MzU5Mw";
 /* תוקף מודעה */
@@ -1326,7 +1326,7 @@ function Privacy() {
 
 /* ----------------------- צור קשר ----------------------- */
 function Contact() {
-  const wa = waNumber(CONTACT.phone);
+  const wa = waNumber(CONTACT.whatsapp);
   return (
     <main className="doc">
       <h1>צור קשר</h1>
