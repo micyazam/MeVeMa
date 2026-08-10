@@ -352,3 +352,15 @@ html.a11y-links a,html.a11y-links .qlink{text-decoration:underline !important;ba
 html.a11y-readable body,html.a11y-readable button,html.a11y-readable input,html.a11y-readable select{font-family:Arial,Helvetica,sans-serif !important;letter-spacing:.02em}
 html.a11y-noanim *{transition:none !important;animation:none !important}
 .f-chip:hover{background:var(--accent);color:#fff;cursor:pointer}
+
+/* ---- אודות ושאלות נפוצות ---- */
+.about{max-width:760px;margin:10px auto 44px;padding:24px 28px;background:var(--surf);border:1px solid var(--line);border-radius:18px}
+.about h2{margin:0 0 10px;font-size:23px}
+.about h3{margin:20px 0 8px;font-size:18px;color:var(--accent)}
+.about p{font-size:14.5px;line-height:1.75;margin:0 0 10px}
+.about-steps{margin:0;padding-inline-start:20px}
+.about-steps li{margin-bottom:7px;font-size:14.5px;line-height:1.6}
+.about details{border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:8px;background:#FBF8FE}
+.about summary{font-weight:700;cursor:pointer;font-size:14.5px}
+.about details[open] summary{color:var(--accent);margin-bottom:6px}
+.about details p{margin:0}
