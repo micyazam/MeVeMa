@@ -375,3 +375,4 @@ html.a11y-noanim *{transition:none !important;animation:none !important}
 .cat-link:hover{border-color:var(--accent);color:var(--accent)}
 .cat-link.home-link{border-color:var(--accent);color:var(--accent)}
 a.cat,a.f-chip,a.catchip{text-decoration:none}
+.about-links-sec{margin-top:-24px}

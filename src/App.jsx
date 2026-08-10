@@ -242,7 +242,9 @@ const hasUpdate = (a) => a.pending_title != null || a.pending_link != null || a.
 
 /* ============================================================ */
 /* --- ניתוב: כתובת עברית אמיתית לכל תצוגה (SEO) --- */
-const VIEW_PATHS = { home: "/", terms: "/terms", privacy: "/privacy", contact: "/contact", account: "/account", admin: "/admin", auth: "/auth", reset: "/reset" };
+const VIEW_PATHS = { home: "/", about: "/אודות", accessibility: "/הצהרת-נגישות", terms: "/terms", privacy: "/privacy", contact: "/contact", account: "/account", admin: "/admin", auth: "/auth", reset: "/reset" };
+// עמודים שלא נסרקים על ידי גוגל
+const NOINDEX_VIEWS = ["terms", "privacy", "accessibility", "contact", "account", "admin", "auth", "reset"];
 function pathFor(view, cat) { return view === "board" && cat ? "/" + encodeURIComponent(cat.slug) : (VIEW_PATHS[view] || "/"); }
 function parsePath(pathname) {
   let decoded = pathname;
@@ -314,17 +316,28 @@ export default function App() {
     } else if (view === "terms") { document.title = "תנאי שימוש — מי ומה · שטחי פרסום"; }
     else if (view === "privacy") { document.title = "מדיניות פרטיות — מי ומה · שטחי פרסום"; }
     else if (view === "contact") { document.title = "צור קשר — מי ומה · שטחי פרסום"; }
+    else if (view === "about") {
+      document.title = "אודות מי ומה — שטחי פרסום בפיקסלים · איך זה עובד ושאלות נפוצות";
+      desc?.setAttribute("content", "כל מה שרציתם לדעת על מי ומה: איך קונים שטח פרסום בפיקסלים, כמה זה עולה, לכמה זמן, ומי עומדת מאחורי המיזם. שאלות ותשובות.");
+    }
+    else if (view === "accessibility") { document.title = "הצהרת נגישות — מי ומה"; }
     else {
       document.title = "מי ומה — שטחי פרסום · ₪1 לפיקסל · כולם כאן";
       desc?.setAttribute("content", "תפסו את שטח הפרסום שלכם ב'מי ומה' — שטחי פרסום בפיקסלים לפי קטגוריות. ₪1 לפיקסל, שטח פרסום מ-₪100, מיליון פיקסלים בכל קטגוריה. כל הקודם זוכה.");
     }
     canon?.setAttribute("href", "https://www.mevema.co.il" + pathFor(view, cat));
+    // noindex לעמודים משפטיים ופרטיים
+    let robots = document.querySelector('meta[name="robots"]');
+    if (!robots) { robots = document.createElement("meta"); robots.setAttribute("name", "robots"); document.head.appendChild(robots); }
+    robots.setAttribute("content", NOINDEX_VIEWS.includes(view) ? "noindex, follow" : "index, follow");
   }, [view, cat]);
 
   if (!isConfigured) return <Shell><SetupNeeded /></Shell>;
 
   const nav = {
     onHome: () => go("home"),
+    onAbout: () => go("about"),
+    onA11y: () => go("accessibility"),
     onTerms: () => go("terms"),
     onPrivacy: () => go("privacy"),
     onContact: () => go("contact"),
@@ -340,6 +353,8 @@ export default function App() {
       {loading ? <div className="center pad"><div className="spin" /></div>
         : view === "reset" ? <ResetPassword onDone={() => setView("home")} />
         : view === "auth" ? <AuthPage onAuthed={() => setView("account")} />
+        : view === "about" ? <About onPickCat={nav.onPickCat} />
+        : view === "accessibility" ? <Accessibility />
         : view === "terms" ? <Terms />
         : view === "privacy" ? <Privacy />
         : view === "contact" ? <Contact />
@@ -422,7 +437,8 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
       {children}
       <footer className="ft">
         <div className="ft-links">
-          <button onClick={() => { nav.onHome?.(); setTimeout(() => document.getElementById("about")?.scrollIntoView({ behavior: "smooth" }), 150); }}>אודות ושאלות נפוצות</button><span>·</span>
+          <button onClick={nav.onAbout}>אודות ושאלות נפוצות</button><span>·</span>
+          <button onClick={nav.onA11y}>הצהרת נגישות</button><span>·</span>
           <button onClick={nav.onTerms}>תנאי שימוש</button><span>·</span>
           <button onClick={nav.onPrivacy}>מדיניות פרטיות</button><span>·</span>
           <button onClick={nav.onContact}>צור קשר</button>
@@ -566,6 +582,76 @@ function ResetPassword({ onDone }) {
 }
 
 /* ----------------------- בית ----------------------- */
+
+/* ----------------------- עמוד אודות ----------------------- */
+function About({ onPickCat }) {
+  return (
+    <main>
+      <section className="about">
+        <h2>אודות "מי ומה" — שטחי פרסום בפיקסלים</h2>
+        <p>"מי ומה" (mevema.co.il) הוא מיזם ישראלי ייחודי למכירת שטחי פרסום בפיקסלים: לוקחים את הרעיון המפורסם של דף מיליון הפיקסלים מ-2005, ומביאים אותו לישראל בגרסה מודרנית — {CATEGORIES.length} קטגוריות בשני עולמות ("מי" — האנשים, ו"מה" — הדברים), מיליון פיקסלים בדיוק בכל קטגוריה, ומחיר אחד פשוט: ₪1 לפיקסל. עסקים, יוצרים, מומחים ויזמים תופסים שטח פרסום החל מ-₪100, מעלים תמונה וקישור, ונשארים בתמונה לשנים.</p>
+
+        <h3>איך זה עובד — ב-4 צעדים</h3>
+        <ol className="about-steps">
+          <li><b>בוחרים קטגוריה</b> — מהכוכבים והמשפיעים ועד הבית, הטעם והיוקרה.</li>
+          <li><b>תופסים שטח פרסום פנוי</b> — מ-100 פיקסלים (₪100) ועד 10,000 פיקסלים (₪10,000).</li>
+          <li><b>מעלים תמונה, כותרת וקישור</b> — וממתינים לאישור קצר.</li>
+          <li><b>משלמים בתשלום מאובטח (Grow)</b> — והשטח שלכם עולה לאוויר, עם תעודת בעלות דיגיטלית להורדה.</li>
+        </ol>
+
+        <h3>שאלות נפוצות</h3>
+        <details><summary>כמה עולה שטח פרסום ב"מי ומה"?</summary>
+          <p>המחיר הוא ₪1 לפיקסל, סופי וכולל מע"מ ככל שחל. שטח הפרסום הקטן ביותר הוא 100 פיקסלים (₪100) והגדול ביותר 10,000 פיקסלים (₪10,000). אין מנויים, אין תשלומים חודשיים — משלמים פעם אחת.</p>
+        </details>
+        <details><summary>לכמה זמן שטח הפרסום שלי בתוקף?</summary>
+          <p>תוקף המודעה ללא הגבלת זמן, ומובטח מינימום 3 שנים ממועד הפרסום. אפשר לעדכן את המודעה בכל עת (כל עדכון עובר אישור).</p>
+        </details>
+        <details><summary>מי יכול לפרסם באתר?</summary>
+          <p>כל עסק, יוצר, מומחה או אדם פרטי: מתווכים ואנשי נדל"ן, מסעדות, מאמנים, עורכי דין, רואי חשבון, סטארטאפים, חנויות אופנה ויוקרה, מרצים, ספורטאים — לכל אחד יש קטגוריה בעולמות ה"מי" וה"מה". כל מודעה עוברת אישור תוכן לפני פרסום.</p>
+        </details>
+        <details><summary>מה זה "משחק המיליון"?</summary>
+          <p>בכל קטגוריה יש בדיוק 1,000,000 פיקסלים — לא אחד יותר. כשקטגוריה מתמלאת, היא נסגרת. המקדימים תופסים את המקומות הטובים ביותר, וכל הקודם זוכה. 20 שטחי הפרסום הראשונים שעולים לאוויר נרשמים לתמיד בקיר המייסדים.</p>
+        </details>
+        <details><summary>מה מקבלים אחרי הרכישה?</summary>
+          <p>שטח פרסום עם התמונה והקישור שלכם, תעודת בעלות דיגיטלית מעוצבת להורדה ולשיתוף, ואזור אישי שבו אפשר לעקוב, לערוך ולעדכן את המודעה.</p>
+        </details>
+        <details><summary>אפשר לבטל ולקבל החזר?</summary>
+          <p>כן — ניתן לבטל ולקבל החזר כספי עד 21 יום ממועד ההזמנה, בכפוף לחוק הגנת הצרכן. לאחר 21 יום לא יינתנו החזרים. שימו לב שאין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם ייחודיות הפרויקט.</p>
+        </details>
+        <details><summary>מי עומדת מאחורי המיזם?</summary>
+          <p>מיכל ילוז — יזמית עם 21 שנות ניסיון, שהתחילה את דרכה בחדשות בטלוויזיה והקימה מיזמים דיגיטליים בהם פורטל אנימל ושירות מטפלים אינפו. "מי ומה" הוא הפרויקט שבו כולם נכנסים לתמונה — פיקסל אחרי פיקסל.</p>
+        </details>
+      </section>
+      <section className="about about-links-sec">
+        <h3>שטחי פרסום לפי תחום</h3>
+        <div className="cat-links">
+          {CATEGORIES.map((c) => (
+            <a key={c.id} href={"/" + encodeURIComponent(c.slug)} className="cat-link"
+              onClick={(e) => { e.preventDefault(); onPickCat?.(c); }}>{c.icon} פרסום ב{c.name}</a>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+/* ----------------------- הצהרת נגישות ----------------------- */
+function Accessibility() {
+  return (
+    <main className="doc">
+      <h1>הצהרת נגישות</h1>
+      <p className="muted tiny">עודכן לאחרונה: אוגוסט 2026</p>
+      <p>אתר "מי ומה" (mevema.co.il) רואה חשיבות רבה במתן שירות שוויוני ונגיש לכלל הגולשים, לרבות אנשים עם מוגבלות, ופועל להנגשת האתר בהתאם לתקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות), התשע"ג-2013, ולתקן הישראלי ת"י 5568 המבוסס על הנחיות WCAG 2.0 ברמה AA.</p>
+      <h3>התאמות הנגישות באתר</h3>
+      <p>באתר פועל תפריט נגישות (הכפתור העגול בפינת המסך) המאפשר: הגדלה והקטנה של הטקסט, ניגודיות גבוהה, גווני אפור, הדגשת קישורים, מעבר לגופן קריא ועצירת אנימציות. ההעדפות נשמרות בין ביקורים. בנוסף, האתר תומך בניווט מקלדת, כולל טקסט חלופי לתמונות, ומוצג בכיוון וכתב עברי תקינים.</p>
+      <h3>חריגות ומגבלות</h3>
+      <p>אנו פועלים להנגשה מיטבית ומתמשכת של האתר. ייתכן שחלקים מסוימים טרם הונגשו במלואם — ובהם תכני מודעות (תמונות) שמועלים על ידי מפרסמים. נשמח לקבל כל פנייה בנושא ולתקן בהקדם.</p>
+      <h3>יצירת קשר בנושא נגישות</h3>
+      <p>נתקלתם בקושי או בבעיה בגלישה? רכזת הנגישות של האתר היא {CONTACT.owner}, וניתן לפנות אליה בטלפון <span dir="ltr">{CONTACT.phone}</span> או בדוא"ל <a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a>. אנא ציינו את מהות הקושי ואת הדף שבו נתקלתם בו, ואנו נטפל בפנייה בהקדם האפשרי.</p>
+    </main>
+  );
+}
+
 function Home({ ads, onPick }) {
   const live = ads.filter((a) => a.status === "live");
   const totalSold = live.reduce((s, a) => s + a.pixels, 0);
@@ -680,41 +766,6 @@ function Home({ ads, onPick }) {
         <p className="tiny muted">* הפירוט לפי קטגוריית "הבית"; ההרכב משתנה מעט בין קטגוריות, אבל הסכום תמיד בדיוק 1,000,000. כל משבצת בנויה מריבועים של 10×10 פיקסלים — הקטנה ביותר 100 פיקסלים (₪100), הגדולה ביותר 10,000 (₪10,000).</p>
       </section>
 
-      <section className="about" id="about">
-        <h2>אודות "מי ומה" — שטחי פרסום בפיקסלים</h2>
-        <p>"מי ומה" (mevema.co.il) הוא מיזם ישראלי ייחודי למכירת שטחי פרסום בפיקסלים: לוקחים את הרעיון המפורסם של דף מיליון הפיקסלים מ-2005, ומביאים אותו לישראל בגרסה מודרנית — {CATEGORIES.length} קטגוריות בשני עולמות ("מי" — האנשים, ו"מה" — הדברים), מיליון פיקסלים בדיוק בכל קטגוריה, ומחיר אחד פשוט: ₪1 לפיקסל. עסקים, יוצרים, מומחים ויזמים תופסים שטח פרסום החל מ-₪100, מעלים תמונה וקישור, ונשארים בתמונה לשנים.</p>
-
-        <h3>איך זה עובד — ב-4 צעדים</h3>
-        <ol className="about-steps">
-          <li><b>בוחרים קטגוריה</b> — מהכוכבים והמשפיעים ועד הבית, הטעם והיוקרה.</li>
-          <li><b>תופסים שטח פרסום פנוי</b> — מ-100 פיקסלים (₪100) ועד 10,000 פיקסלים (₪10,000).</li>
-          <li><b>מעלים תמונה, כותרת וקישור</b> — וממתינים לאישור קצר.</li>
-          <li><b>משלמים בתשלום מאובטח (Grow)</b> — והשטח שלכם עולה לאוויר, עם תעודת בעלות דיגיטלית להורדה.</li>
-        </ol>
-
-        <h3>שאלות נפוצות</h3>
-        <details><summary>כמה עולה שטח פרסום ב"מי ומה"?</summary>
-          <p>המחיר הוא ₪1 לפיקסל, סופי וכולל מע"מ ככל שחל. שטח הפרסום הקטן ביותר הוא 100 פיקסלים (₪100) והגדול ביותר 10,000 פיקסלים (₪10,000). אין מנויים, אין תשלומים חודשיים — משלמים פעם אחת.</p>
-        </details>
-        <details><summary>לכמה זמן שטח הפרסום שלי בתוקף?</summary>
-          <p>תוקף המודעה ללא הגבלת זמן, ומובטח מינימום 3 שנים ממועד הפרסום. אפשר לעדכן את המודעה בכל עת (כל עדכון עובר אישור).</p>
-        </details>
-        <details><summary>מי יכול לפרסם באתר?</summary>
-          <p>כל עסק, יוצר, מומחה או אדם פרטי: מתווכים ואנשי נדל"ן, מסעדות, מאמנים, עורכי דין, רואי חשבון, סטארטאפים, חנויות אופנה ויוקרה, מרצים, ספורטאים — לכל אחד יש קטגוריה בעולמות ה"מי" וה"מה". כל מודעה עוברת אישור תוכן לפני פרסום.</p>
-        </details>
-        <details><summary>מה זה "משחק המיליון"?</summary>
-          <p>בכל קטגוריה יש בדיוק 1,000,000 פיקסלים — לא אחד יותר. כשקטגוריה מתמלאת, היא נסגרת. המקדימים תופסים את המקומות הטובים ביותר, וכל הקודם זוכה. 20 שטחי הפרסום הראשונים שעולים לאוויר נרשמים לתמיד בקיר המייסדים.</p>
-        </details>
-        <details><summary>מה מקבלים אחרי הרכישה?</summary>
-          <p>שטח פרסום עם התמונה והקישור שלכם, תעודת בעלות דיגיטלית מעוצבת להורדה ולשיתוף, ואזור אישי שבו אפשר לעקוב, לערוך ולעדכן את המודעה.</p>
-        </details>
-        <details><summary>אפשר לבטל ולקבל החזר?</summary>
-          <p>כן — ניתן לבטל ולקבל החזר כספי עד 21 יום ממועד ההזמנה, בכפוף לחוק הגנת הצרכן. לאחר 21 יום לא יינתנו החזרים. שימו לב שאין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם ייחודיות הפרויקט.</p>
-        </details>
-        <details><summary>מי עומדת מאחורי המיזם?</summary>
-          <p>מיכל ילוז — יזמית עם 21 שנות ניסיון, שהתחילה את דרכה בחדשות בטלוויזיה והקימה מיזמים דיגיטליים בהם פורטל אנימל ושירות מטפלים אינפו. "מי ומה" הוא הפרויקט שבו כולם נכנסים לתמונה — פיקסל אחרי פיקסל.</p>
-        </details>
-      </section>
     </main>
   );
 }
