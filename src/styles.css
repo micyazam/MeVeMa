@@ -376,3 +376,13 @@ html.a11y-noanim *{transition:none !important;animation:none !important}
 .cat-link.home-link{border-color:var(--accent);color:var(--accent)}
 a.cat,a.f-chip,a.catchip{text-decoration:none}
 .about-links-sec{margin-top:-24px}
+
+/* ---- כפתור תמיכה צף ---- */
+.support-btn{position:fixed;bottom:18px;right:18px;z-index:99;background:var(--wa);color:#fff;font-weight:800;font-size:14.5px;padding:13px 18px;border-radius:99px;text-decoration:none;box-shadow:0 4px 16px rgba(37,211,102,.45)}
+.support-btn:hover{filter:brightness(1.07)}
+/* ---- שחזור סיסמה ---- */
+.forgot{display:block;width:100%;margin-top:10px;text-align:center;background:#F3ECFC;border:1.5px dashed var(--accent);border-radius:11px;padding:10px;color:var(--accent);font-weight:700;font-size:13.5px}
+.forgot:hover{background:#EDE2FA}
+/* ---- כפתור גיבוי ---- */
+.backup-btn{background:#F3ECFC;border:1.5px solid var(--accent);color:var(--accent);border-radius:11px;padding:9px 16px;font-weight:700;font-size:14px}
+.backup-btn:hover{background:var(--accent);color:#fff}

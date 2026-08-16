@@ -84,9 +84,9 @@ function waNumber(phone) {
 const phoneEmail = (phone) => `${waNumber(phone)}@mevema.co.il`;
 const validPhone = (phone) => waNumber(phone).length >= 11 && waNumber(phone).length <= 13;
 function genPassword() {
-  const c = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  let p = "";
-  for (let i = 0; i < 8; i++) p += c[Math.floor(Math.random() * c.length)];
+  // סיסמה פשוטה וידידותית: 6 ספרות (הראשונה לא 0 כדי למנוע בלבול)
+  let p = String(1 + Math.floor(Math.random() * 9));
+  for (let i = 0; i < 5; i++) p += Math.floor(Math.random() * 10);
   return p;
 }
 
@@ -447,6 +447,9 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
         <p className="tiny">מספר הפיקסלים מוגבל ל-1,000,000 פיקסלים בכל קטגוריה · אין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם היות הפרויקט ייחודי.</p>
       </footer>
       <AccessibilityMenu />
+      <a className="support-btn" target="_blank" rel="noopener noreferrer"
+        href={`https://wa.me/${waNumber(CONTACT.whatsapp)}?text=${encodeURIComponent("היי, אני צריך/ה עזרה באתר מי ומה 🧩")}`}
+        title="תמיכה בוואטסאפ" aria-label="תמיכה בוואטסאפ">💬 תמיכה</a>
     </div>
   );
 }
@@ -479,7 +482,7 @@ function AuthForm({ onAuthed, compact }) {
 
   const go = async () => {
     setErr("");
-    if (!validPhone(phone)) return setErr("מספר טלפון לא תקין (לדוגמה 050-1234567).");
+    if (!validPhone(phone)) return setErr("מספר טלפון לא תקין (לדוגמה 0501234567).");
     setBusy(true);
     try {
       if (mode === "login") {
@@ -525,12 +528,12 @@ function AuthForm({ onAuthed, compact }) {
     <div className={compact ? "" : "card narrow"}>
       <h3>{mode === "login" ? "התחברות" : "פתיחת חשבון"}</h3>
       <p className="tiny muted">
-        {mode === "login" ? "מתחברים עם הטלפון והסיסמה שקיבלת בוואטסאפ." : "נרשמים עם מספר טלפון — סיסמה תיווצר ותישלח אליך לוואטסאפ אוטומטית."}
+        {mode === "login" ? "מתחברים עם הטלפון והסיסמה שקיבלת בוואטסאפ." : "נרשמים עם מספר טלפון בלבד — סיסמה פשוטה בת 6 ספרות תיווצר עבורך אוטומטית ותוצג כאן ובוואטסאפ."}
       </p>
       {mode === "signup" && (
         <label className="fl">שם<input value={name} onChange={(e) => setName(e.target.value)} placeholder="שם מלא / שם העסק" /></label>
       )}
-      <label className="fl">טלפון<input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-1234567" dir="ltr" inputMode="tel"
+      <label className="fl">טלפון<input value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d-]/g, ""))} placeholder="0501234567" dir="ltr" inputMode="tel"
         onKeyDown={(e) => e.key === "Enter" && go()} /></label>
       {mode === "login" && (
         <label className="fl">סיסמה<input value={pass} onChange={(e) => setPass(e.target.value)} dir="ltr" type="password"
@@ -545,7 +548,12 @@ function AuthForm({ onAuthed, compact }) {
           ? <button onClick={() => { setMode("signup"); setErr(""); }}>אין לך חשבון? פתיחת חשבון</button>
           : <button onClick={() => { setMode("login"); setErr(""); }}>יש לך חשבון? התחברות</button>}
       </div>
-      {mode === "login" && <p className="tiny muted" style={{ marginTop: 8, textAlign: "center" }}>שכחת סיסמה? פנה/י אלינו בעמוד ״צור קשר״.</p>}
+      {mode === "login" && (
+        <button className="forgot" onClick={() => {
+          const msg = `היי, שכחתי את הסיסמה שלי לאתר מי ומה 🔑\nמספר הטלפון שלי: ${phone || "___"}\nאשמח לסיסמה חדשה. תודה!`;
+          window.open(`https://wa.me/${waNumber(CONTACT.whatsapp)}?text=${encodeURIComponent(msg)}`, "_blank");
+        }}>שכחת סיסמה? לחצו לשחזור מהיר בוואטסאפ 🔑</button>
+      )}
     </div>
   );
 }
@@ -1491,6 +1499,16 @@ function AdminQueue() {
     const msg = `שלום, המודעה שלך "${a.title}" ב"מי ומה" לא שולמה תוך 72 שעות מהאישור, ולכן המקום שוחרר.\nנשמח לראותך שוב — אפשר תמיד לבחור מקום חדש באתר. 💜`;
     window.open(`https://wa.me/${waNumber(a.phone)}?text=${encodeURIComponent(msg)}`, "_blank");
   };
+  // גיבוי מלא: מוריד קובץ עם כל המודעות (כולל קישורי תמונות) — לשמירה בטוחה
+  const downloadBackup = () => {
+    const backup = { exported_at: new Date().toISOString(), site: "mevema.co.il", ads_count: ads.length, ads };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const u = URL.createObjectURL(blob), l = document.createElement("a");
+    const d = new Date().toISOString().slice(0, 10);
+    l.href = u; l.download = `mevema-backup-${d}.json`; l.click();
+    setTimeout(() => URL.revokeObjectURL(u), 3000);
+  };
+
   // "שולם · העלה" — מפרסם את המודעה וגם שולח אישור תשלום בוואטסאפ ללקוח
   const publish = async (a) => {
     await setStatus(a, "live", a.published_at ? {} : { published_at: new Date().toISOString() });
@@ -1538,7 +1556,10 @@ function AdminQueue() {
 
   return (
     <main className="admin">
-      <div className="board-head"><h2>אזור ניהול</h2></div>
+      <div className="board-head">
+        <h2>אזור ניהול</h2>
+        <button className="backup-btn" onClick={downloadBackup} title="מוריד קובץ עם כל נתוני המודעות">📦 גיבוי נתונים</button>
+      </div>
       <AdminPwReset />
       <div className="seg wide scroll">
         {TABS.map(([k, label]) => (
