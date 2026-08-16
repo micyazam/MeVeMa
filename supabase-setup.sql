@@ -136,3 +136,23 @@ create policy "auth delete ad images" on storage.objects
 -- =====================================================================
 insert into public.admins (email) values ('972500000000@mevema.co.il')
 on conflict (email) do nothing;
+
+-- ===== שחזור סיסמה אוטומטי (Green API) =====
+create table if not exists public.password_resets (
+  phone text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.password_resets enable row level security;
+-- אין מדיניות — רק service_role (השרת) ניגש לטבלה
+
+create or replace function public.system_reset_password(target_email text, new_password text)
+returns boolean language plpgsql security definer
+set search_path = public, auth, extensions as $$
+begin
+  update auth.users
+  set encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf'))
+  where lower(email) = lower(target_email);
+  return found;
+end $$;
+revoke execute on function public.system_reset_password(text, text) from public, anon, authenticated;
+grant execute on function public.system_reset_password(text, text) to service_role;

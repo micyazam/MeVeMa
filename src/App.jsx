@@ -499,6 +499,8 @@ function AuthForm({ onAuthed, compact }) {
         if (error) throw error;
         if (!data.user || (data.user.identities && data.user.identities.length === 0)) throw new Error("exists");
         sendWhatsApp(phone, pw);     // שולח את הפרטים לוואטסאפ אוטומטית
+        fetch("/api/notify-admin", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "signup", name: name.trim(), phone: phone.trim() }) }).catch(() => {});
         setCreds({ phone, pw });     // ומציג אותם גם על המסך
       }
     } catch (e) {
@@ -548,11 +550,51 @@ function AuthForm({ onAuthed, compact }) {
           ? <button onClick={() => { setMode("signup"); setErr(""); }}>אין לך חשבון? פתיחת חשבון</button>
           : <button onClick={() => { setMode("login"); setErr(""); }}>יש לך חשבון? התחברות</button>}
       </div>
-      {mode === "login" && (
-        <button className="forgot" onClick={() => {
-          const msg = `היי, שכחתי את הסיסמה שלי לאתר מי ומה 🔑\nמספר הטלפון שלי: ${phone || "___"}\nאשמח לסיסמה חדשה. תודה!`;
-          window.open(`https://wa.me/${waNumber(CONTACT.whatsapp)}?text=${encodeURIComponent(msg)}`, "_blank");
-        }}>שכחת סיסמה? לחצו לשחזור מהיר בוואטסאפ 🔑</button>
+      {mode === "login" && <ForgotPassword phone={phone} />}
+    </div>
+  );
+}
+
+
+/* שחזור סיסמה אוטומטי — סיסמה חדשה נשלחת לוואטסאפ של המשתמש בלי מגע יד אדם */
+function ForgotPassword({ phone: initialPhone }) {
+  const [open, setOpen] = useState(false);
+  const [phone, setPhone] = useState(initialPhone || "");
+  const [state, setState] = useState("idle"); // idle | busy | sent | error | rate
+  const send = async () => {
+    if (!validPhone(phone)) return setState("error");
+    setState("busy");
+    try {
+      const r = await fetch("/api/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, "") }),
+      });
+      if (r.status === 429) return setState("rate");
+      if (!r.ok) throw new Error();
+      setState("sent");
+    } catch {
+      // אם השירות האוטומטי לא זמין — נפילה רכה לשחזור ידני בוואטסאפ
+      const msg = `היי, שכחתי את הסיסמה שלי לאתר מי ומה 🔑\nמספר הטלפון שלי: ${phone}\nאשמח לסיסמה חדשה. תודה!`;
+      window.open(`https://wa.me/${waNumber(CONTACT.whatsapp)}?text=${encodeURIComponent(msg)}`, "_blank");
+      setState("idle");
+    }
+  };
+  if (!open) return <button className="forgot" onClick={() => setOpen(true)}>שכחת סיסמה? 🔑</button>;
+  return (
+    <div className="forgot-box">
+      {state === "sent" ? (
+        <div className="warn ok-box">✅ סיסמה חדשה נשלחה לוואטסאפ של המספר שהוזן. בדקו את ההודעות והתחברו איתה.</div>
+      ) : (
+        <>
+          <label className="fl">מה מספר הטלפון שנרשמתם איתו?
+            <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d-]/g, ""))} placeholder="0501234567" dir="ltr" inputMode="tel" /></label>
+          {state === "error" && <div className="warn err">מספר טלפון לא תקין.</div>}
+          {state === "rate" && <div className="warn err">כבר נשלחה סיסמה בדקות האחרונות — בדקו בוואטסאפ, או נסו שוב בעוד רבע שעה.</div>}
+          <button className="cta dark" disabled={state === "busy"} onClick={send}>
+            {state === "busy" ? "שולח..." : "שלחו לי סיסמה חדשה לוואטסאפ 🔑"}
+          </button>
+        </>
       )}
     </div>
   );
@@ -1012,6 +1054,9 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
         pixels: slot.pixels, title: title.trim() || cat.name, link, phone, image_url, status: "pending", flags,
       });
       if (error) throw error;
+      fetch("/api/notify-admin", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "new_ad", title: title.trim() || cat.name, category: cat.name,
+          pixels: slot.pixels.toLocaleString("he-IL"), price: nis(slot.pixels * PRICE), phone }) }).catch(() => {});
       setSent(true);
     } catch (e) { console.error(e); alert("שגיאה: " + (e.message || "נסה שוב")); }
     finally { setBusy(false); }
