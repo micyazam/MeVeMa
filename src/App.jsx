@@ -448,7 +448,8 @@ export default function App() {
   };
 
   return (
-    <Shell nav={nav} session={session} isAdmin={isAdmin} activeCat={view === "board" ? cat : null}>
+    <Shell nav={nav} session={session} isAdmin={isAdmin} activeCat={view === "board" ? cat : null} brands={brands}
+      activeBrand={view === "brand" ? (brands.find((x) => x.slug === brandSlug) || null) : null}>
       {loading ? <div className="center pad"><div className="spin" /></div>
         : view === "reset" ? <ResetPassword onDone={() => setView("home")} />
         : view === "auth" ? <AuthPage onAuthed={() => setView("account")} />
@@ -513,7 +514,8 @@ function AccessibilityMenu() {
   );
 }
 
-function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
+function Shell({ children, nav = {}, session, isAdmin, activeCat, brands = [], activeBrand = null }) {
+  const liveBrands = brands.filter((b) => b.status === "live");
   return (
     <div className="wm">
       <div className="topbar">
@@ -535,6 +537,13 @@ function Shell({ children, nav = {}, session, isAdmin, activeCat }) {
             <a key={c.id} href={"/" + encodeURIComponent(c.slug)} className={"catchip" + (activeCat?.id === c.id ? " on" : "")}
               onClick={(e) => { e.preventDefault(); nav.onPickCat(c); }} style={activeCat?.id === c.id ? { borderColor: c.color, color: c.color } : undefined}>
               <span>{c.icon}</span> {c.name}
+            </a>
+          ))}
+          {liveBrands.length > 0 && <span className="catbar-sep" aria-hidden="true" />}
+          {liveBrands.map((b) => (
+            <a key={"b-" + b.id} href={brandPath(b)} className={"catchip brandchip" + (activeBrand?.id === b.id ? " on" : "")}
+              title={`עמוד המיליון של ${b.name}`} onClick={(e) => { e.preventDefault(); nav.onBrand?.(b); }}>
+              {b.logo_url ? <img src={b.logo_url} alt="" /> : <span>🏢</span>} {b.name}
             </a>
           ))}
         </div>
