@@ -452,3 +452,8 @@ a.cat,a.f-chip,a.catchip{text-decoration:none}
 .catchip.brandchip{border-color:var(--accent);color:var(--accent);background:#F8F3FD;gap:7px}
 .catchip.brandchip img{height:20px;max-width:64px;object-fit:contain}
 .catchip.brandchip.on{background:var(--accent);color:#fff}
+.ft-disclaimer{margin-top:6px;line-height:1.6;color:var(--soft)}
+.ft-disclaimer a{color:var(--accent);font-weight:700}
+.agree{display:flex;gap:8px;align-items:flex-start;margin:8px 0 4px;line-height:1.5}
+.agree input{margin-top:3px;width:16px;height:16px;flex:0 0 auto}
+.agree a{color:var(--accent);font-weight:700}
