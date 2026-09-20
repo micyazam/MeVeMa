@@ -436,3 +436,9 @@ a.cat,a.f-chip,a.catchip{text-decoration:none}
 .ent-demo-link{display:inline-block;margin:0 auto 14px;color:#fff;font-weight:700;text-decoration:underline;font-size:14.5px}
 .brand-empty{border-style:dashed;color:var(--accent);font-size:13.5px;max-width:none;padding:10px 20px}
 .demo-ent{margin-top:18px}
+.brand-head{flex-direction:column;align-items:center;text-align:center}
+.brand-head h2{font-size:34px;margin:4px 0}
+.brand-head .brand-logo{max-height:90px;margin-bottom:8px}
+.brand-owner-note{max-width:620px;margin:12px auto 0}
+.tile.slot.locked{cursor:default;opacity:.85}
+.tile.slot.locked:hover{transform:none;filter:none}

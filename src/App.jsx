@@ -43,7 +43,11 @@ const GROUPS = [
   { id: "mi", title: "מי", sub: "האנשים — מי שמוביל, יוצר, מלמד ומשפיע" },
   { id: "ma", title: "מה", sub: "הדברים — מה שאנחנו בונים, טועמים, לובשים וחולמים" },
 ];
-const catById = (id) => CATEGORIES.find((c) => c.id === id);
+/* קטגוריה-מדומה לעמוד מותג: מודעות של מותג נשמרות בקטגוריה "brand:<id>" */
+const isBrandCat = (c) => String(c || "").startsWith("brand:");
+const brandCat = (b) => ({ id: "brand:" + b.id, name: b.name, icon: "🏢", color: "#53196E", desc: b.tagline || "עמוד מיליון · שטח פרסום ארגוני", slug: null, brand: b });
+let BRAND_REGISTRY = [];
+const catById = (id) => CATEGORIES.find((c) => c.id === id) || (isBrandCat(id) ? (() => { const b = BRAND_REGISTRY.find((x) => "brand:" + x.id === id); return b ? brandCat(b) : null; })() : undefined);
 
 const PACKAGES = [
   { pixels: 100, w: 10, h: 10 }, { pixels: 200, w: 20, h: 10 }, { pixels: 500, w: 50, h: 10 },
@@ -283,10 +287,10 @@ async function fetchBrands() {
 }
 const BRAND_PRICE = 1_000_000; // ₪1 לפיקסל × 1,000,000 — כמו כולם
 const DEMO_BRAND = {
-  id: "demo", slug: "דוגמה", status: "live", demo: true,
+  id: "demo", slug: "דוגמה", status: "live", demo: true, owner_id: null,
   name: "המותג שלכם",
-  tagline: "ככה נראה עמוד מיליון שלם — עמוד שכולו של מותג אחד, בכתובת משלו, עם הלוגו בעמוד הבית של \"מי ומה\".",
-  description: "עמוד מותג הוא לא משבצת — הוא עמוד שלם על שם החברה: 1,000,000 פיקסלים של שטח פרסום ארגוני, בעיצוב שלכם, עם הלוגו בשורת המותגים בראש עמוד הבית, לשנים. המחיר הוא אותו מחיר של כולם: ₪1 לפיקסל — ₪1,000,000 לעמוד, בתשלום אחד מראש בהעברה בנקאית. כאן היו יכולים להופיע התמונה, הטקסט והקישור של המותג שלכם.",
+  tagline: "ככה נראה עמוד מיליון שלם — עמוד שכולו של מותג אחד",
+  description: "עמוד מותג הוא עמוד רגיל של \"מי ומה\" — 1,000,000 פיקסלים באותן משבצות — רק שכל המשבצות שייכות למותג אחד. מנהל/ת המותג מעלה תמונות וקישורים לכל משבצת שרוצה, מתי שרוצה, בלי תשלום על כל משבצת: העמוד כולו שולם מראש. המחיר הוא אותו מחיר של כולם: ₪1 לפיקסל — ₪1,000,000 לעמוד, בתשלום אחד מראש בהעברה בנקאית.",
   logo_url: "/demo-brand-logo.png", hero_url: "/demo-brand-hero.jpg", link: null, published_at: null,
 };
 const brandPath = (b) => "/מותג/" + (b?.slug || "");
@@ -353,6 +357,7 @@ export default function App() {
   const reload = useCallback(async () => {
     if (!isConfigured) { setLoading(false); return; }
     const [a, b] = await Promise.all([fetchBoardAds(), fetchBrands()]);
+    BRAND_REGISTRY = [...b, DEMO_BRAND];
     setBoardAds(a); setBrands(b);
     setLoading(false);
   }, []);
@@ -447,7 +452,12 @@ export default function App() {
         : view === "contact" ? <Contact />
         : view === "account" ? (session ? <Account session={session} onChange={reload} allAds={boardAds} /> : <AuthPage onAuthed={() => setView("account")} />)
         : view === "admin" ? <Admin session={session} isAdmin={isAdmin} onAuth={() => setView("auth")} brands={brands} onChange={reload} onBrand={nav.onBrand} />
-        : view === "brand" ? <BrandPage brand={brands.find((b) => b.slug === brandSlug)} slug={brandSlug} brands={brands} onHome={nav.onHome} onBrand={nav.onBrand} />
+        : view === "brand" ? (() => {
+            const b = brands.find((x) => x.slug === brandSlug) || (brandSlug === DEMO_BRAND.slug ? DEMO_BRAND : null);
+            if (!b) return <BrandNotFound onHome={nav.onHome} />;
+            return <Board key={b.id} cat={brandCat(b)} ads={b.demo ? [...boardAds, ...demoAds()] : boardAds} session={session} isAdmin={isAdmin}
+              onChange={reload} onPickCat={nav.onPickCat} onBrand={nav.onBrand} onHome={nav.onHome} brands={brands} />;
+          })()
         : view === "home" ? <Home ads={boardAds} brands={brands} onPick={nav.onPickCat} onBrand={nav.onBrand} />
         : <Board cat={cat} ads={boardAds} session={session} onChange={reload} onPickCat={nav.onPickCat} />}
     </Shell>
@@ -822,54 +832,22 @@ function BrandInquiry() {
   );
 }
 
-/* עמוד מותג — עמוד מיליון שלם של חברה */
-function BrandPage({ brand, brands = [], onHome, onBrand, slug }) {
-  if (!brand && slug === DEMO_BRAND.slug) brand = DEMO_BRAND;
-  if (!brand) {
-    return <main className="center pad"><div className="card narrow center">
-      <h3>עמוד המותג לא נמצא</h3><p className="muted">ייתכן שהכתובת שגויה או שהעמוד עדיין לא פורסם.</p>
-      <button className="cta dark" onClick={onHome}>לעמוד הבית</button></div></main>;
-  }
-  const others = brands.filter((b) => b.status === "live" && b.id !== brand.id);
-  return (
-    <main className="brand-page">
-      <section className="brand-hero">
-        {brand.logo_url && <img className="brand-logo" src={brand.logo_url} alt={brand.name} />}
-        <p className="eyebrow">🏢 עמוד מיליון · שטח פרסום ארגוני ב"מי ומה"</p>
-        <h1>{brand.name}</h1>
-        {brand.tagline && <p className="sub">{brand.tagline}</p>}
-        {brand.link && <a className="cta go brand-cta" href={brand.link} target="_blank" rel="noopener noreferrer">לאתר {brand.name} ←</a>}
-      </section>
-      {brand.hero_url && (
-        brand.link
-          ? <a className="brand-canvas" href={brand.link} target="_blank" rel="noopener noreferrer"><img src={brand.hero_url} alt={brand.name} /></a>
-          : <div className="brand-canvas"><img src={brand.hero_url} alt={brand.name} /></div>
-      )}
-      {brand.description && <section className="brand-desc"><p>{brand.description}</p></section>}
-      {brand.demo && <section className="enterprise demo-ent">
-        <h2>רוצים שהעמוד הזה יהיה שלכם?</h2>
-        <p className="ent-sub">₪1,000,000 לעמוד · ₪1 לפיקסל · תשלום בהעברה בנקאית</p>
-        <BrandInquiry />
-      </section>}
-      <p className="brand-meta tiny muted">{brand.demo ? "עמוד לדוגמה בלבד — " : ""}עמוד זה שייך במלואו ל-{brand.name} — 1,000,000 פיקסלים של שטח פרסום ארגוני ב"מי ומה"{brand.published_at ? ` · מאז ${fmtDate(brand.published_at)}` : ""}.</p>
-      <section className="cat-seo">
-        {others.length > 0 && <>
-          <span className="tiny muted">מותגים נוספים עם עמוד מיליון:</span>
-          <div className="cat-links">
-            {others.map((b) => <a key={b.id} href={brandPath(b)} className="cat-link" onClick={(e) => { e.preventDefault(); onBrand?.(b); }}>🏢 {b.name}</a>)}
-          </div>
-        </>}
-        <div className="cat-links" style={{ marginTop: 10 }}>
-          <a href="/" className="cat-link home-link" onClick={(e) => { e.preventDefault(); onHome?.(); }}>🧩 לכל שטחי הפרסום</a>
-          <a href="/#enterprise" className="cat-link" onClick={(e) => { e.preventDefault(); onHome?.(); setTimeout(() => document.getElementById("enterprise")?.scrollIntoView({ behavior: "smooth" }), 200); }}>🏢 גם לחברה שלכם מגיע עמוד מיליון</a>
-        </div>
-      </section>
-    </main>
-  );
+/* עמוד מותג שלא נמצא */
+function BrandNotFound({ onHome }) {
+  return <main className="center pad"><div className="card narrow center">
+    <h3>עמוד המותג לא נמצא</h3><p className="muted">ייתכן שהכתובת שגויה או שהעמוד עדיין לא פורסם.</p>
+    <button className="cta dark" onClick={onHome}>לעמוד הבית</button></div></main>;
+}
+/* מודעות-דוגמה לעמוד המותג לדוגמה (לא נשמרות במסד הנתונים) */
+function demoAds() {
+  const cat = "brand:" + DEMO_BRAND.id, slots = generateSlots(cat);
+  const big = slots.find((sl) => sl.pixels === 10000), mid = slots.find((sl) => sl.pixels === 5000 && sl.w > sl.h), sq = slots.find((sl) => sl.pixels === 2500);
+  const mk = (sl, image_url, title) => sl ? [{ id: "demo-" + sl.id, category: cat, x: sl.x, y: sl.y, w: sl.w, h: sl.h, pixels: sl.pixels, title, link: "/", image_url, status: "live", published_at: null }] : [];
+  return [...mk(big, "/demo-brand-hero.jpg", "המותג שלכם"), ...mk(mid, "/demo-brand-logo.png", "הלוגו שלכם"), ...mk(sq, null, "מבצע החודש")];
 }
 
 function Home({ ads, brands = [], onPick, onBrand }) {
-  const live = ads.filter((a) => a.status === "live");
+  const live = ads.filter((a) => a.status === "live" && !isBrandCat(a.category));
   const liveBrands = brands.filter((b) => b.status === "live");
   const totalSold = live.reduce((s, a) => s + a.pixels, 0);
   const SITE_PIXELS = CATEGORIES.length * CATEGORY_PIXELS;
@@ -1069,7 +1047,7 @@ function slotBreakdown(catId) {
 const FOUNDERS_COUNT = 20;
 function foundersList(allAds) {
   return (allAds || [])
-    .filter((a) => a.status === "live")
+    .filter((a) => a.status === "live" && !isBrandCat(a.category))
     .sort((a, b) => new Date(a.published_at || 0) - new Date(b.published_at || 0))
     .slice(0, FOUNDERS_COUNT);
 }
@@ -1089,7 +1067,9 @@ const MILESTONES = [
   { at: 1_000_000, name: "מיליון. היסטוריה. 👑" },
 ];
 /* ----------------------- שטחי פרסום בקטגוריה ----------------------- */
-function Board({ cat, ads, session, onChange, onPickCat }) {
+function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmin, brands = [] }) {
+  const brand = cat.brand || null;
+  const canEdit = !!brand && !brand.demo && (isAdmin || (!!session && !!brand.owner_id && session.user.id === brand.owner_id));
   const catAds = ads.filter((a) => a.category === cat.id);
   const slots = useMemo(() => generateSlots(cat.id), [cat.id]);
   const live = catAds.filter((a) => a.status === "live");
@@ -1103,16 +1083,29 @@ function Board({ cat, ads, session, onChange, onPickCat }) {
 
   return (
     <main className="board-wrap full">
+      {brand ? (
+        <div className="board-head brand-head">
+          <div>
+            {brand.logo_url && <img className="brand-logo" src={brand.logo_url} alt={brand.name} />}
+            <p className="eyebrow">🏢 עמוד מיליון · שטח פרסום ארגוני ב"מי ומה"</p>
+            <h2>{brand.name}</h2>
+            {brand.tagline && <p className="muted">{brand.tagline}</p>}
+            {brand.link && <a className="cta go brand-cta" href={brand.link} target="_blank" rel="noopener noreferrer">לאתר {brand.name} ←</a>}
+            {canEdit && <div className="warn ok-box brand-owner-note">✏️ את/ה מנהל/ת העמוד הזה — לחיצה על משבצת פנויה מעלה תמונה וקישור מיד, בלי תשלום (העמוד שולם מראש).</div>}
+          </div>
+        </div>
+      ) : (
       <div className="board-head">
         <div>
           <h2><span className="ic" style={{ color: cat.color }}>{cat.icon}</span> {cat.name} <span className="tiny muted">· {cat.desc}</span></h2>
           <p className="muted">שטחי פרסום החל מ-₪100 (₪1 לפיקסל) · תפסו את שטח הפרסום שלכם ב"מי ומה"</p>
         </div>
       </div>
+      )}
 
       <div className="race">
         <div className="race-top">
-          <span>🧩 משחק המיליון</span>
+          <span>{brand ? `🧩 עמוד המיליון של ${brand.name}` : "🧩 משחק המיליון"}</span>
           <b>{sold.toLocaleString("he-IL")} / 1,000,000 פיקסלים · {pct.toFixed(2)}%</b>
         </div>
         <div className="race-bar"><i style={{ width: Math.max(pct, 0.4) + "%", background: cat.color }} /></div>
@@ -1122,7 +1115,9 @@ function Board({ cat, ads, session, onChange, onPickCat }) {
       </div>
 
       <div className="board-tip-row">
-        <p className="board-tip tiny muted">לוחצים על שטח פרסום פנוי כדי לפרסם בו. השטחים הגדולים = יותר פיקסלים. גוללים למטה לעוד שטחים פנויים.</p>
+        <p className="board-tip tiny muted">{brand
+          ? (canEdit ? "לוחצים על משבצת פנויה כדי להעלות תמונה וקישור. אפשר למלא כמה משבצות שרוצים — הכול כלול." : `כל 1,000,000 הפיקסלים בעמוד הזה שייכים ל-${brand.name}. רק מנהל/ת המותג מעלה לכאן תוכן.`)
+          : "לוחצים על שטח פרסום פנוי כדי לפרסם בו. השטחים הגדולים = יותר פיקסלים. גוללים למטה לעוד שטחים פנויים."}</p>
       </div>
 
       <div className="flow-board">
@@ -1156,6 +1151,18 @@ function Board({ cat, ads, session, onChange, onPickCat }) {
             );
           }
           const big = slot.pixels >= 2500, mid = slot.pixels >= 1000, sm = slot.pixels >= 300;
+          if (brand) {
+            return (
+              <button key={slot.id} className={"tile slot" + (canEdit ? "" : " locked")}
+                onClick={() => canEdit ? setBuying(slot) : alert(`המשבצת הזו שייכת לעמוד המיליון של ${brand.name}. רק מנהל/ת המותג מעלה לכאן תוכן.`)}
+                title={`${slot.pixels.toLocaleString("he-IL")} פיקסלים · ${canEdit ? "לחצו להעלאה" : "שייך ל-" + brand.name}`}
+                style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`, background: PASTELS[i % PASTELS.length] }}>
+                {big ? <span className="slot-lbl"><b>{canEdit ? "העלאת תמונה כאן" : brand.name}</b><span>{slot.pixels.toLocaleString("he-IL")} פיקסלים</span></span>
+                  : mid ? <span className="slot-lbl sm"><b>{slot.pixels.toLocaleString("he-IL")} פיקסלים</b></span>
+                  : sm ? <span className="slot-lbl xs">{canEdit ? "+" : "🏢"}</span> : null}
+              </button>
+            );
+          }
           return (
             <button key={slot.id} className="tile slot" onClick={() => setBuying(slot)}
               title={`${slot.pixels.toLocaleString("he-IL")} פיקסלים · ${nis(slot.pixels)}`}
@@ -1177,9 +1184,29 @@ function Board({ cat, ads, session, onChange, onPickCat }) {
       </div>
 
       <div className="board-math tiny muted">
-        🧮 בקטגוריה זו: <b>{breakdown.count} משבצות</b> שמסתכמות ב-<b>{breakdown.total.toLocaleString("he-IL")} פיקסלים בדיוק</b> · הקטנה ביותר 100 פיקסלים (₪100) · הגדולה ביותר 10,000 פיקסלים (₪10,000) · נתפסו {sold.toLocaleString("he-IL")}, נשארו {(CATEGORY_PIXELS - sold).toLocaleString("he-IL")}.
+        {brand
+          ? <>🧮 בעמוד המותג: <b>{breakdown.count} משבצות</b> שמסתכמות ב-<b>{breakdown.total.toLocaleString("he-IL")} פיקסלים בדיוק</b> — כולן שייכות ל-{brand.name} · מולאו {sold.toLocaleString("he-IL")}, פנויות למילוי {(CATEGORY_PIXELS - sold).toLocaleString("he-IL")}.</>
+          : <>🧮 בקטגוריה זו: <b>{breakdown.count} משבצות</b> שמסתכמות ב-<b>{breakdown.total.toLocaleString("he-IL")} פיקסלים בדיוק</b> · הקטנה ביותר 100 פיקסלים (₪100) · הגדולה ביותר 10,000 פיקסלים (₪10,000) · נתפסו {sold.toLocaleString("he-IL")}, נשארו {(CATEGORY_PIXELS - sold).toLocaleString("he-IL")}.</>}
       </div>
 
+      {brand ? (
+        <section className="cat-seo">
+          {brand.description && <p>{brand.description}</p>}
+          <p className="tiny muted">עמוד זה שייך במלואו ל-{brand.name} — 1,000,000 פיקסלים של שטח פרסום ארגוני ב"מי ומה"{brand.published_at ? ` · מאז ${fmtDate(brand.published_at)}` : ""}.</p>
+          {brand.demo && <div className="enterprise demo-ent">
+            <h2>רוצים שהעמוד הזה יהיה שלכם?</h2>
+            <p className="ent-sub">₪1,000,000 לעמוד · ₪1 לפיקסל · תשלום בהעברה בנקאית</p>
+            <BrandInquiry />
+          </div>}
+          <div className="cat-links" style={{ marginTop: 12 }}>
+            {brands.filter((b) => b.status === "live" && b.id !== brand.id).map((b) => (
+              <a key={b.id} href={brandPath(b)} className="cat-link" onClick={(e) => { e.preventDefault(); onBrand?.(b); }}>🏢 {b.name}</a>
+            ))}
+            <a href="/" className="cat-link home-link" onClick={(e) => { e.preventDefault(); onHome?.(); }}>🧩 לכל שטחי הפרסום</a>
+            {!brand.demo && <a href="/#enterprise" className="cat-link" onClick={(e) => { e.preventDefault(); onHome?.(); setTimeout(() => document.getElementById("enterprise")?.scrollIntoView({ behavior: "smooth" }), 200); }}>🏢 גם לחברה שלכם מגיע עמוד מיליון</a>}
+          </div>
+        </section>
+      ) : (
       <section className="cat-seo">
         <h3>שטח פרסום בקטגוריית {cat.name} — {cat.desc}</h3>
         <p>{cat.seo}</p>
@@ -1200,12 +1227,68 @@ function Board({ cat, ads, session, onChange, onPickCat }) {
           </div>
         </div>
       </section>
+      )}
 
-      {buying && (
+      {buying && brand && (
+        <BrandSlotModal slot={buying} brand={brand} cat={cat}
+          onClose={() => setBuying(null)} onDone={() => { setBuying(null); onChange(); }} />
+      )}
+      {buying && !brand && (
         <SlotBuyModal slot={buying} cat={cat} session={session} ads={catAds}
           onClose={() => setBuying(null)} onDone={() => { setBuying(null); onChange(); }} />
       )}
     </main>
+  );
+}
+
+/* ----------------------- העלאת תוכן למשבצת בעמוד מותג (בלי תשלום) ----------------------- */
+function BrandSlotModal({ slot, brand, cat, onClose, onDone }) {
+  const [title, setTitle] = useState(brand.name);
+  const [link, setLink] = useState(brand.link || "https://");
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const linkCheck = link.length > 9 ? checkLink(link) : null;
+  const onFile = (e) => {
+    const f = e.target.files?.[0]; if (!f) return; setErr("");
+    if (!f.type.startsWith("image/")) return setErr("צריך קובץ תמונה.");
+    if (f.size > 10 * 1024 * 1024) return setErr("עד 10MB.");
+    setFile(f); setPreview(URL.createObjectURL(f));
+  };
+  const submit = async () => {
+    if (!file) return setErr("צריך להעלות תמונה.");
+    if (!linkCheck?.ok) return setErr("הקישור אינו תקין.");
+    setBusy(true); setErr("");
+    try {
+      const image_url = await uploadImage(await compressImage(file, slot.w, slot.h));
+      const { error } = await supabase.rpc("add_brand_ad", {
+        p_brand: brand.id, p_x: slot.x, p_y: slot.y, p_w: slot.w, p_h: slot.h, p_pixels: slot.pixels,
+        p_title: title.trim() || brand.name, p_link: link, p_image_url: image_url,
+      });
+      if (error) throw error;
+      onDone();
+    } catch (e) {
+      setErr(e.message?.includes("taken") ? "המשבצת נתפסה בינתיים — בחרו אחרת." : e.message?.includes("authorized") ? "אין הרשאה לעמוד הזה." : "שגיאה: " + (e.message || "נסו שוב"));
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="modal-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h3>🏢 העלאת תוכן למשבצת · {slot.pixels.toLocaleString("he-IL")} פיקסלים</h3>
+        <p className="tiny muted">משבצת {slot.w}×{slot.h} בעמוד המיליון של {brand.name}. עולה לאוויר מיד — בלי תשלום.</p>
+        <label className="fl">כותרת<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} /></label>
+        <label className="fl">קישור<input value={link} onChange={(e) => setLink(e.target.value)} dir="ltr" /></label>
+        {linkCheck && !linkCheck.ok && <div className="warn err">{linkCheck.flags?.join(" · ")}</div>}
+        <label className="fl">תמונה (יחס {slot.w}:{slot.h})<input type="file" accept="image/*" onChange={onFile} /></label>
+        {preview && <div className="preview"><img className="crop-preview" src={preview} alt="" style={{ aspectRatio: slot.w / slot.h }} /></div>}
+        {err && <div className="warn err">{err}</div>}
+        <div className="row2">
+          <button className="btn-line ghost2" onClick={onClose} disabled={busy}>ביטול</button>
+          <button className="cta go" onClick={submit} disabled={busy}>{busy ? "מעלה..." : "העלאה לאוויר ✓"}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1767,6 +1850,7 @@ function AdminBrands({ brands = [], onChange, onBrand }) {
             <div className="qbody">
               <b>{i + 1}. {b.name} <span className={"tiny " + (b.status === "live" ? "ok-text" : "muted")}>· {b.status === "live" ? "באוויר" : "טיוטה"}</span></b>
               <span className="tiny muted" dir="ltr">/מותג/{b.slug}</span>
+              <span className="tiny">{b.owner_id ? `👤 מנהל/ת המותג: ${b.owner_phone || "מוגדר"}` : "⚠️ עדיין לא הוגדר/ה מנהל/ת מותג — רק את יכולה להעלות תוכן"}</span>
               {b.tagline && <span className="tiny">{b.tagline}</span>}
               {b.link && <a className="qlink" href={b.link} target="_blank" rel="noopener noreferrer nofollow" dir="ltr">{b.link}</a>}
               <span className="tiny muted">נוצר: {fmtDate(b.created_at)}{b.published_at ? ` · פורסם: ${fmtDate(b.published_at)}` : ""} · {b.hero_url ? "יש תמונת עמוד" : "אין תמונת עמוד"}</span>
@@ -1791,7 +1875,7 @@ function AdminBrands({ brands = [], onChange, onBrand }) {
 
 function BrandForm({ brand, busy, setBusy, onDone, onCancel }) {
   const isNew = !brand.id;
-  const [f, setF] = useState({ name: brand.name || "", slug: brand.slug || "", tagline: brand.tagline || "", description: brand.description || "", link: brand.link || "" });
+  const [f, setF] = useState({ name: brand.name || "", slug: brand.slug || "", tagline: brand.tagline || "", description: brand.description || "", link: brand.link || "", owner_phone: brand.owner_phone || "" });
   const [logo, setLogo] = useState(null);
   const [hero, setHero] = useState(null);
   const [err, setErr] = useState("");
@@ -1808,6 +1892,14 @@ function BrandForm({ brand, busy, setBusy, onDone, onCancel }) {
     setBusy(true);
     try {
       const row = { name: f.name.trim(), slug, tagline: f.tagline.trim() || null, description: f.description.trim() || null, link: f.link.trim() || null };
+      const op = f.owner_phone.trim();
+      if (op) {
+        if (!validPhone(op)) throw new Error("טלפון מנהל/ת המותג לא תקין.");
+        const { data: uid, error: ue } = await supabase.rpc("user_id_by_email", { target_email: phoneEmail(op) });
+        if (ue) throw ue;
+        if (!uid) throw new Error("מנהל/ת המותג צריך/ה קודם להירשם באתר (התחברות → פתיחת חשבון) עם הטלפון " + op);
+        row.owner_id = uid; row.owner_phone = op;
+      } else { row.owner_id = null; row.owner_phone = null; }
       if (logo) row.logo_url = await uploadFile(await resizeImage(logo, 600), "logo");
       if (hero) row.hero_url = await uploadFile(await resizeImage(hero, 1600), "hero");
       const q = isNew ? supabase.from("brand_pages").insert(row) : supabase.from("brand_pages").update(row).eq("id", brand.id);
@@ -1828,6 +1920,8 @@ function BrandForm({ brand, busy, setBusy, onDone, onCancel }) {
       <label className="fl">שורת תיאור קצרה<input value={f.tagline} onChange={set("tagline")} placeholder="לדוגמה: הטעם של הבית מאז 1942" /></label>
       <label className="fl">טקסט לעמוד (לא חובה)<textarea rows={4} value={f.description} onChange={set("description")} placeholder="כמה משפטים על המותג — יופיעו מתחת לתמונה" /></label>
       <label className="fl">קישור לאתר המותג<input value={f.link} onChange={set("link")} placeholder="https://" dir="ltr" /></label>
+      <label className="fl">טלפון מנהל/ת המותג (מי שמעלה תוכן לעמוד)<input value={f.owner_phone} onChange={set("owner_phone")} placeholder="0501234567" dir="ltr" inputMode="tel" /></label>
+      <p className="tiny muted">מנהל/ת המותג נרשם/ת באתר כמו כל משתמש (טלפון + סיסמה), ואז בעמוד המותג יוכל/תוכל להעלות תמונות למשבצות — בלי תשלום.</p>
       <div className="row2">
         <label className="fl">לוגו (PNG שקוף מומלץ){brand.logo_url && !logo && <img className="mini-prev" src={brand.logo_url} alt="" />}
           <input type="file" accept="image/*" onChange={(e) => setLogo(e.target.files?.[0] || null)} /></label>

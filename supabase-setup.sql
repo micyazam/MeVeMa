@@ -198,3 +198,41 @@ grant insert, update, delete on public.brand_pages to authenticated;
 -- שחזור מגיבוי: המנהלת רשאית להוסיף/לעדכן מודעות של כל משתמש
 drop policy if exists "admin insert" on public.ads;
 create policy "admin insert" on public.ads for insert to authenticated with check (public.is_admin());
+
+-- ===== עמוד מותג = לוח רגיל שכולו של מותג אחד (v46) =====
+alter table public.brand_pages add column if not exists owner_id uuid references auth.users(id) on delete set null;
+alter table public.brand_pages add column if not exists owner_phone text;
+
+-- מודעות רגילות לא נכנסות לעמודי מותג (רק דרך add_brand_ad)
+drop policy if exists "own insert" on public.ads;
+create policy "own insert" on public.ads
+  for insert to authenticated
+  with check (owner_id = auth.uid() and status = 'pending' and category not like 'brand:%');
+
+-- איתור משתמש לפי טלפון (למנהלת בלבד) — כדי לשייך מנהל/ת מותג
+create or replace function public.user_id_by_email(target_email text)
+returns uuid language sql security definer stable set search_path = public, auth as $$
+  select case when public.is_admin() then (select id from auth.users where lower(email) = lower(target_email) limit 1) else null end;
+$$;
+grant execute on function public.user_id_by_email(text) to authenticated;
+
+-- מנהל/ת המותג (או המנהלת) מעלה תוכן למשבצת בעמוד המותג — עולה לאוויר מיד, בלי תשלום
+create or replace function public.add_brand_ad(
+  p_brand uuid, p_x int, p_y int, p_w int, p_h int, p_pixels int, p_title text, p_link text, p_image_url text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare b public.brand_pages%rowtype; cat text; new_id uuid;
+begin
+  select * into b from public.brand_pages where id = p_brand;
+  if not found then raise exception 'brand not found'; end if;
+  if not (b.owner_id = auth.uid() or public.is_admin()) then raise exception 'not authorized'; end if;
+  cat := 'brand:' || p_brand::text;
+  if exists (select 1 from public.ads where category = cat and x = p_x and y = p_y and status <> 'removed') then
+    raise exception 'slot taken';
+  end if;
+  insert into public.ads (owner_id, category, x, y, w, h, pixels, title, link, phone, image_url, status, published_at, approved_at)
+  values (auth.uid(), cat, p_x, p_y, p_w, p_h, p_pixels, p_title, p_link,
+          coalesce(auth.jwt() -> 'user_metadata' ->> 'phone', ''), p_image_url, 'live', now(), now())
+  returning id into new_id;
+  return new_id;
+end $$;
+grant execute on function public.add_brand_ad(uuid, int, int, int, int, int, text, text, text) to authenticated;
