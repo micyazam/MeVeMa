@@ -387,3 +387,52 @@ a.cat,a.f-chip,a.catchip{text-decoration:none}
 .backup-btn{background:#F3ECFC;border:1.5px solid var(--accent);color:var(--accent);border-radius:11px;padding:9px 16px;font-weight:700;font-size:14px}
 .backup-btn:hover{background:var(--accent);color:#fff}
 .forgot-box{margin-top:10px;background:#F8F3FD;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+
+/* ---- שורת מותגים (עמוד הבית) ---- */
+.brands-strip{max-width:1060px;margin:-6px auto 10px;padding:12px 18px;text-align:center}
+.brands-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:8px}
+.brand-chip{display:flex;align-items:center;justify-content:center;height:72px;min-width:120px;max-width:200px;padding:10px 18px;background:#fff;border:1.5px solid var(--line);border-radius:16px;text-decoration:none;color:var(--ink);font-weight:800;transition:.15s}
+.brand-chip img{max-height:52px;max-width:160px;object-fit:contain}
+.brand-chip:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(83,25,110,.16);border-color:var(--accent)}
+
+/* ---- מקטע חברות ומותגים ---- */
+.enterprise{max-width:760px;margin:26px auto 8px;padding:26px 28px;background:linear-gradient(135deg,#2D1851,#53196E);color:#fff;border-radius:20px;text-align:center;box-shadow:0 10px 30px rgba(45,24,81,.25)}
+.enterprise .eyebrow{color:#E9D5FF}
+.enterprise h2{margin:4px 0 10px;font-size:30px;color:#fff}
+.ent-sub{color:#E9D5FF;line-height:1.7;margin:0 auto 14px;max-width:600px}
+.ent-list{list-style:none;padding:0;margin:0 auto 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;text-align:right;max-width:600px}
+.ent-list li{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 12px;font-size:14px}
+.ent-cta{max-width:340px;margin:0 auto}
+.ent-form{max-width:520px;margin:0 auto;background:#fff;color:var(--ink);border-radius:16px;padding:16px;text-align:right}
+.ent-ok{max-width:520px;margin:0 auto}
+
+/* ---- עמוד מותג ---- */
+.brand-page{padding-bottom:30px}
+.brand-hero{text-align:center;padding:36px 18px 18px;max-width:760px;margin:0 auto}
+.brand-logo{max-height:110px;max-width:280px;object-fit:contain;margin-bottom:12px}
+.brand-hero h1{font-size:40px;margin:6px 0}
+.brand-hero .sub{color:var(--soft);font-size:17px;max-width:560px;margin:0 auto}
+.brand-cta{max-width:320px;margin:16px auto 0;text-decoration:none;text-align:center}
+.brand-canvas{display:block;max-width:1060px;margin:10px auto;padding:0 18px}
+.brand-canvas img{width:100%;border-radius:18px;box-shadow:0 10px 30px rgba(45,24,81,.15);display:block}
+.brand-desc{max-width:760px;margin:16px auto;padding:0 18px;font-size:15.5px;line-height:1.75}
+.brand-meta{max-width:760px;margin:6px auto 0;padding:0 18px;text-align:center}
+
+/* ---- ניהול: מותגים וגיבוי ---- */
+.brands-admin .card,.backup-panel .card{margin-bottom:14px}
+.brand-thumb{background:#fff;display:grid;place-items:center;padding:10px}
+.brand-thumb img{max-height:70px;object-fit:contain}
+.mini-prev{display:block;max-height:48px;max-width:120px;object-fit:contain;margin:4px 0;border:1px solid var(--line);border-radius:6px;padding:3px;background:#fff}
+.fl textarea{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font-family:inherit;font-size:14px;resize:vertical}
+.snap-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
+.snap-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:#F8F3FD;border-radius:10px;font-size:13.5px}
+.snap-row .btn-line{width:auto;margin:0;padding:6px 12px;font-size:13px}
+.qact button:disabled{opacity:.35}
+.ent-hero-btn{margin:14px auto 0;display:block;max-width:560px;background:linear-gradient(120deg,var(--accent),#C026D3);color:#fff;border-radius:14px;padding:12px 16px;font-size:15px;font-weight:800;box-shadow:0 4px 14px rgba(108,45,144,.35)}
+.ent-hero-btn:hover{filter:brightness(1.08)}
+.ent-price{display:flex;flex-direction:column;align-items:center;gap:4px;margin:6px auto 16px}
+.ent-price b{font-size:44px;line-height:1;letter-spacing:-.5px}
+.ent-price span{color:#E9D5FF;font-size:14px;max-width:520px}
+.ent-demo-link{display:inline-block;margin:0 auto 14px;color:#fff;font-weight:700;text-decoration:underline;font-size:14.5px}
+.brand-empty{border-style:dashed;color:var(--accent);font-size:13.5px;max-width:none;padding:10px 20px}
+.demo-ent{margin-top:18px}

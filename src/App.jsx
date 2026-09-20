@@ -113,7 +113,7 @@ function compressImage(file, w, h) {
   });
 }
 /* תעודת בעלות דיגיטלית על שטח פרסום — נוצרת בדפדפן ומורדת כתמונה לשיתוף */
-function downloadCertificate(a, c, rank) {
+function downloadCertificate(a, c, rank, brand = false) {
   const W = 1200, H = 850;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const x = cv.getContext("2d");
@@ -151,7 +151,7 @@ function downloadCertificate(a, c, rank) {
   x.font = "900 62px Rubik, sans-serif";
   x.fillText("תעודת בעלות", W / 2, 302);
   x.font = "700 27px Rubik, sans-serif";
-  x.fillText(`על שטח פרסום ב"מי ומה" — שטחי הפרסום של ישראל`, W / 2, 342);
+  x.fillText(brand ? `על עמוד מיליון שלם ב"מי ומה" — שטח פרסום ארגוני` : `על שטח פרסום ב"מי ומה" — שטחי הפרסום של ישראל`, W / 2, 342);
   // קו מפריד עדין
   x.strokeStyle = FUCH; x.lineWidth = 2;
   x.beginPath(); x.moveTo(W / 2 - 90, 362); x.lineTo(W / 2 + 90, 362); x.stroke();
@@ -159,14 +159,14 @@ function downloadCertificate(a, c, rank) {
   x.fillStyle = INK; x.font = "900 48px Rubik, sans-serif";
   x.fillText(a.title, W / 2, 424);
   // צ'יפ פרטי השטח
-  const chipTxt = `${c?.icon || "🧩"} קטגוריית ${c?.name || ""} · שטח פרסום מס' ${a.x}`;
+  const chipTxt = brand ? `🏢 עמוד מותג · 1,000,000 פיקסלים` : `${c?.icon || "🧩"} קטגוריית ${c?.name || ""} · שטח פרסום מס' ${a.x}`;
   x.font = "700 26px Rubik, sans-serif";
   const tw = x.measureText(chipTxt).width + 56;
   x.fillStyle = "#EFE7F9"; rr(W / 2 - tw / 2, 448, tw, 46, 23); x.fill();
   x.fillStyle = PUR; x.fillText(chipTxt, W / 2, 481);
   // פרטים
   x.font = "600 27px Rubik, sans-serif";
-  x.fillText(`${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h}) · השקעה של ${nis(a.pixels * PRICE)}`, W / 2, 542);
+  x.fillText(brand ? `עמוד שלם על שם ${a.title} · כתובת: mevema.co.il/מותג/${a.slug || ""}` : `${a.pixels.toLocaleString("he-IL")} פיקסלים (${a.w}×${a.h}) · השקעה של ${nis(a.pixels * PRICE)}`, W / 2, 542);
   x.fillText(`נרשם ב"מי ומה" בתאריך ${fmtDate(a.published_at || a.created_at)}`, W / 2, 586);
   x.font = "800 26px Rubik, sans-serif";
   x.fillText("בתוקף ללא הגבלת זמן · מובטח מינימום 3 שנים", W / 2, 646);
@@ -203,7 +203,7 @@ function downloadCertificate(a, c, rank) {
   cv.toBlob((b) => {
     if (!b) return;
     const u = URL.createObjectURL(b), l = document.createElement("a");
-    l.href = u; l.download = "תעודת-בעלות-מי-ומה.png"; l.click();
+    l.href = u; l.download = brand ? "תעודת-עמוד-מותג-מי-ומה.png" : "תעודת-בעלות-מי-ומה.png"; l.click();
     setTimeout(() => URL.revokeObjectURL(u), 3000);
   }, "image/png");
 }
@@ -219,6 +219,78 @@ async function deleteImageByUrl(url) {
   const path = url.split(`/${BUCKET}/`)[1];
   if (path) await supabase.storage.from(BUCKET).remove([path]);
 }
+
+/* ---- יוצר ZIP (שיטת STORE, בלי ספריות חיצוניות) — לגיבוי מלא כולל תמונות ---- */
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), d = new Date();
+  const t = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+  const dt = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  const u16 = (v) => [v & 0xFF, (v >>> 8) & 0xFF];
+  const u32 = (v) => [v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF];
+  const parts = [], central = []; let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const local = new Uint8Array([...u32(0x04034b50), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(t), ...u16(dt),
+      ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0), ...name]);
+    parts.push(local, data);
+    central.push(new Uint8Array([...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(t), ...u16(dt),
+      ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(0), ...u32(offset), ...name]));
+    offset += local.length + data.length;
+  }
+  const cdSize = central.reduce((acc, c) => acc + c.length, 0);
+  const end = new Uint8Array([...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0)]);
+  return new Blob([...parts, ...central, end], { type: "application/zip" });
+}
+function saveBlob(blob, filename) {
+  const u = URL.createObjectURL(blob), l = document.createElement("a");
+  l.href = u; l.download = filename; l.click();
+  setTimeout(() => URL.revokeObjectURL(u), 5000);
+}
+
+/* הקטנת תמונה בלי חיתוך (ללוגו/תמונת מותג) — שומרת שקיפות ב-PNG */
+function resizeImage(file, maxPx) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const f = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(img.width * f)); c.height = Math.max(1, Math.round(img.height * f));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      const png = file.type === "image/png" || file.type === "image/svg+xml";
+      c.toBlob((b) => (b ? res({ blob: b, ext: png ? "png" : "jpg", type: png ? "image/png" : "image/jpeg" }) : rej(new Error("blob"))),
+        png ? "image/png" : "image/jpeg", 0.88);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("img")); };
+    img.src = url;
+  });
+}
+async function uploadFile({ blob, ext, type }, prefix = "brand") {
+  const name = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const up = await supabase.storage.from(BUCKET).upload(name, blob, { contentType: type });
+  if (up.error) throw up.error;
+  return supabase.storage.from(BUCKET).getPublicUrl(name).data.publicUrl;
+}
+
+/* עמודי מותג — "עמוד מיליון שלם" לחברות */
+async function fetchBrands() {
+  const { data, error } = await supabase.from("brand_pages").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+const BRAND_PRICE = 1_000_000; // ₪1 לפיקסל × 1,000,000 — כמו כולם
+const DEMO_BRAND = {
+  id: "demo", slug: "דוגמה", status: "live", demo: true,
+  name: "המותג שלכם",
+  tagline: "ככה נראה עמוד מיליון שלם — עמוד שכולו של מותג אחד, בכתובת משלו, עם הלוגו בעמוד הבית של \"מי ומה\".",
+  description: "עמוד מותג הוא לא משבצת — הוא עמוד שלם על שם החברה: 1,000,000 פיקסלים של שטח פרסום ארגוני, בעיצוב שלכם, עם הלוגו בשורת המותגים בראש עמוד הבית, לשנים. המחיר הוא אותו מחיר של כולם: ₪1 לפיקסל — ₪1,000,000 לעמוד, בתשלום אחד מראש בהעברה בנקאית. כאן היו יכולים להופיע התמונה, הטקסט והקישור של המותג שלכם.",
+  logo_url: "/demo-brand-logo.png", hero_url: "/demo-brand-hero.jpg", link: null, published_at: null,
+};
+const brandPath = (b) => "/מותג/" + (b?.slug || "");
+const slugify = (name) => String(name || "").trim().toLowerCase().replace(/["'״׳]/g, "").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
 
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 function fits(cand, ads) {
@@ -245,7 +317,11 @@ const hasUpdate = (a) => a.pending_title != null || a.pending_link != null || a.
 const VIEW_PATHS = { home: "/", about: "/אודות", accessibility: "/הצהרת-נגישות", terms: "/terms", privacy: "/privacy", contact: "/contact", account: "/account", admin: "/admin", auth: "/auth", reset: "/reset" };
 // עמודים שלא נסרקים על ידי גוגל
 const NOINDEX_VIEWS = ["terms", "privacy", "accessibility", "contact", "account", "admin", "auth", "reset"];
-function pathFor(view, cat) { return view === "board" && cat ? "/" + encodeURIComponent(cat.slug) : (VIEW_PATHS[view] || "/"); }
+function pathFor(view, cat, brand) {
+  if (view === "board" && cat) return "/" + encodeURIComponent(cat.slug);
+  if (view === "brand" && brand) return "/" + encodeURIComponent("מותג") + "/" + encodeURIComponent(brand.slug || brand);
+  return VIEW_PATHS[view] || "/";
+}
 function parsePath(pathname) {
   let decoded = pathname;
   try { decoded = decodeURIComponent(pathname); } catch { /* כתובת פגומה */ }
@@ -253,6 +329,9 @@ function parsePath(pathname) {
   const slug = decoded.replace(/^\//, "").replace(/\/$/, "");
   const bySlug = CATEGORIES.find((c) => c.slug === slug);
   if (bySlug) return { view: "board", cat: bySlug };
+  // עמוד מותג: /מותג/<שם>
+  const bm = decoded.match(/^\/מותג\/(.+?)\/?$/);
+  if (bm) return { view: "brand", cat: null, brandSlug: bm[1] };
   // תאימות לאחור: /c/realestate
   const m = decoded.match(/^\/c\/([a-z]+)/i);
   if (m) { const c = catById(m[1].toLowerCase()); if (c) return { view: "board", cat: c }; }
@@ -264,6 +343,8 @@ export default function App() {
   const initialRoute = parsePath(window.location.pathname);
   const [view, setView] = useState(initialRoute.view);
   const [cat, setCat] = useState(initialRoute.cat);
+  const [brandSlug, setBrandSlug] = useState(initialRoute.brandSlug || null);
+  const [brands, setBrands] = useState([]);
   const [boardAds, setBoardAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
@@ -271,7 +352,8 @@ export default function App() {
 
   const reload = useCallback(async () => {
     if (!isConfigured) { setLoading(false); return; }
-    setBoardAds(await fetchBoardAds());
+    const [a, b] = await Promise.all([fetchBoardAds(), fetchBrands()]);
+    setBoardAds(a); setBrands(b);
     setLoading(false);
   }, []);
 
@@ -292,16 +374,16 @@ export default function App() {
   }, [session]);
 
   // ניווט: מעדכן תצוגה + כתובת בדפדפן
-  const go = useCallback((v, c = null) => {
-    setView(v); setCat(c);
-    const p = pathFor(v, c);
+  const go = useCallback((v, c = null, brand = null) => {
+    setView(v); setCat(c); setBrandSlug(brand ? (brand.slug || brand) : null);
+    const p = pathFor(v, c, brand);
     if (window.location.pathname !== p) window.history.pushState({}, "", p);
     window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
   // כפתור "אחורה" בדפדפן מחזיר לתצוגה הקודמת
   useEffect(() => {
-    const onPop = () => { const r = parsePath(window.location.pathname); setView(r.view); setCat(r.cat); };
+    const onPop = () => { const r = parsePath(window.location.pathname); setView(r.view); setCat(r.cat); setBrandSlug(r.brandSlug || null); };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -313,6 +395,10 @@ export default function App() {
     if (view === "board" && cat) {
       document.title = `${cat.name} — שטחי פרסום ב"מי ומה" · ₪1 לפיקסל`;
       desc?.setAttribute("content", `שטח פרסום בקטגוריית ${cat.name} (${cat.desc}): ${cat.seo || ""} החל מ-₪100, ₪1 לפיקסל, מיליון פיקסלים בקטגוריה — כל הקודם זוכה.`);
+    } else if (view === "brand") {
+      const b = brands.find((x) => x.slug === brandSlug) || (brandSlug === DEMO_BRAND.slug ? DEMO_BRAND : null);
+      document.title = b ? `${b.name} — עמוד מיליון ב"מי ומה" · שטח פרסום ארגוני` : "עמוד מותג — מי ומה";
+      desc?.setAttribute("content", b ? `${b.name} תפסו עמוד מיליון שלם ב"מי ומה": ${b.tagline || "1,000,000 פיקסלים של שטח פרסום ארגוני"}.` : "עמודי מותג ב\"מי ומה\" — עמוד מיליון שלם לחברות.");
     } else if (view === "terms") { document.title = "תנאי שימוש — מי ומה · שטחי פרסום"; }
     else if (view === "privacy") { document.title = "מדיניות פרטיות — מי ומה · שטחי פרסום"; }
     else if (view === "contact") { document.title = "צור קשר — מי ומה · שטחי פרסום"; }
@@ -325,12 +411,12 @@ export default function App() {
       document.title = "מי ומה — שטחי פרסום · ₪1 לפיקסל · כולם כאן";
       desc?.setAttribute("content", "תפסו את שטח הפרסום שלכם ב'מי ומה' — שטחי פרסום בפיקסלים לפי קטגוריות. ₪1 לפיקסל, שטח פרסום מ-₪100, מיליון פיקסלים בכל קטגוריה. כל הקודם זוכה.");
     }
-    canon?.setAttribute("href", "https://www.mevema.co.il" + pathFor(view, cat));
+    canon?.setAttribute("href", "https://www.mevema.co.il" + pathFor(view, cat, brandSlug));
     // noindex לעמודים משפטיים ופרטיים
     let robots = document.querySelector('meta[name="robots"]');
     if (!robots) { robots = document.createElement("meta"); robots.setAttribute("name", "robots"); document.head.appendChild(robots); }
     robots.setAttribute("content", NOINDEX_VIEWS.includes(view) ? "noindex, follow" : "index, follow");
-  }, [view, cat]);
+  }, [view, cat, brandSlug, brands]);
 
   if (!isConfigured) return <Shell><SetupNeeded /></Shell>;
 
@@ -346,6 +432,7 @@ export default function App() {
     onAuth: () => go("auth"),
     onLogout: () => supabase.auth.signOut().then(() => go("home")),
     onPickCat: (c) => go("board", c),
+    onBrand: (b) => go("brand", null, b),
   };
 
   return (
@@ -359,8 +446,9 @@ export default function App() {
         : view === "privacy" ? <Privacy />
         : view === "contact" ? <Contact />
         : view === "account" ? (session ? <Account session={session} onChange={reload} allAds={boardAds} /> : <AuthPage onAuthed={() => setView("account")} />)
-        : view === "admin" ? <Admin session={session} isAdmin={isAdmin} onAuth={() => setView("auth")} />
-        : view === "home" ? <Home ads={boardAds} onPick={(c) => { setCat(c); setView("board"); }} />
+        : view === "admin" ? <Admin session={session} isAdmin={isAdmin} onAuth={() => setView("auth")} brands={brands} onChange={reload} onBrand={nav.onBrand} />
+        : view === "brand" ? <BrandPage brand={brands.find((b) => b.slug === brandSlug)} slug={brandSlug} brands={brands} onHome={nav.onHome} onBrand={nav.onBrand} />
+        : view === "home" ? <Home ads={boardAds} brands={brands} onPick={nav.onPickCat} onBrand={nav.onBrand} />
         : <Board cat={cat} ads={boardAds} session={session} onChange={reload} onPickCat={nav.onPickCat} />}
     </Shell>
   );
@@ -668,6 +756,9 @@ function About({ onPickCat }) {
         <details><summary>אפשר לבטל ולקבל החזר?</summary>
           <p>כן — ניתן לבטל ולקבל החזר כספי עד 21 יום ממועד ההזמנה, בכפוף לחוק הגנת הצרכן. לאחר 21 יום לא יינתנו החזרים. שימו לב שאין התחייבות לחשיפה או לפניות — החשיפה נובעת מעצם ייחודיות הפרויקט.</p>
         </details>
+        <details><summary>אנחנו חברה גדולה — אפשר לקנות עמוד שלם?</summary>
+          <p>כן. חברות ומותגים יכולים לפתוח "עמוד מיליון" משלהם — עמוד ייעודי של 1,000,000 פיקסלים בעיצוב שלהם, בכתובת משלו, עם הלוגו בשורת המותגים בעמוד הבית — במחיר של ₪1 לפיקסל — ₪1,000,000 לעמוד, בתשלום אחד מראש בהעברה בנקאית. פונים דרך "דף מיליון למותגים" בעמוד הבית.</p>
+        </details>
         <details><summary>מי עומדת מאחורי המיזם?</summary>
           <p>מיכל ילוז — יזמית עם 21 שנות ניסיון, שהתחילה את דרכה בחדשות בטלוויזיה והקימה מיזמים דיגיטליים בהם פורטל אנימל ושירות מטפלים אינפו. "מי ומה" הוא הפרויקט שבו כולם נכנסים לתמונה — פיקסל אחרי פיקסל.</p>
         </details>
@@ -702,8 +793,84 @@ function Accessibility() {
   );
 }
 
-function Home({ ads, onPick }) {
+/* טופס פנייה לעמוד מותג — שולח התראה למנהלת ופותח וואטסאפ */
+function BrandInquiry() {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ company: "", name: "", phone: "", note: "" });
+  const [sent, setSent] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const send = () => {
+    if (!f.company.trim() || !validPhone(f.phone)) return alert("נא למלא שם חברה וטלפון תקין.");
+    fetch("/api/notify-admin", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "brand_inquiry", ...f }) }).catch(() => {});
+    const msg = `היי, אני מ-${f.company.trim()} ומתעניין/ת בעמוד מיליון שלם ב"מי ומה" 🏢\nשם: ${f.name.trim()}\nטלפון: ${f.phone.trim()}${f.note.trim() ? "\n" + f.note.trim() : ""}`;
+    window.open(`https://wa.me/${waNumber(CONTACT.whatsapp)}?text=${encodeURIComponent(msg)}`, "_blank");
+    setSent(true);
+  };
+  if (sent) return <div className="warn ok-box ent-ok">✅ הפנייה נשלחה! נחזור אליכם בהקדם עם פרטים ותמחור לעסקים.</div>;
+  if (!open) return <button className="cta go ent-cta" onClick={() => setOpen(true)}>שליחת פנייה — דף מיליון למותג שלנו 🏢</button>;
+  return (
+    <div className="ent-form">
+      <label className="fl">שם החברה<input value={f.company} onChange={set("company")} placeholder="לדוגמה: אסם" /></label>
+      <div className="row2">
+        <label className="fl">איש/אשת קשר<input value={f.name} onChange={set("name")} placeholder="שם מלא" /></label>
+        <label className="fl">טלפון<input value={f.phone} onChange={set("phone")} placeholder="0501234567" dir="ltr" inputMode="tel" /></label>
+      </div>
+      <label className="fl">כמה מילים (לא חובה)<input value={f.note} onChange={set("note")} placeholder="מה מעניין אתכם?" /></label>
+      <button className="cta go" onClick={send}>שליחת פנייה בוואטסאפ ←</button>
+    </div>
+  );
+}
+
+/* עמוד מותג — עמוד מיליון שלם של חברה */
+function BrandPage({ brand, brands = [], onHome, onBrand, slug }) {
+  if (!brand && slug === DEMO_BRAND.slug) brand = DEMO_BRAND;
+  if (!brand) {
+    return <main className="center pad"><div className="card narrow center">
+      <h3>עמוד המותג לא נמצא</h3><p className="muted">ייתכן שהכתובת שגויה או שהעמוד עדיין לא פורסם.</p>
+      <button className="cta dark" onClick={onHome}>לעמוד הבית</button></div></main>;
+  }
+  const others = brands.filter((b) => b.status === "live" && b.id !== brand.id);
+  return (
+    <main className="brand-page">
+      <section className="brand-hero">
+        {brand.logo_url && <img className="brand-logo" src={brand.logo_url} alt={brand.name} />}
+        <p className="eyebrow">🏢 עמוד מיליון · שטח פרסום ארגוני ב"מי ומה"</p>
+        <h1>{brand.name}</h1>
+        {brand.tagline && <p className="sub">{brand.tagline}</p>}
+        {brand.link && <a className="cta go brand-cta" href={brand.link} target="_blank" rel="noopener noreferrer">לאתר {brand.name} ←</a>}
+      </section>
+      {brand.hero_url && (
+        brand.link
+          ? <a className="brand-canvas" href={brand.link} target="_blank" rel="noopener noreferrer"><img src={brand.hero_url} alt={brand.name} /></a>
+          : <div className="brand-canvas"><img src={brand.hero_url} alt={brand.name} /></div>
+      )}
+      {brand.description && <section className="brand-desc"><p>{brand.description}</p></section>}
+      {brand.demo && <section className="enterprise demo-ent">
+        <h2>רוצים שהעמוד הזה יהיה שלכם?</h2>
+        <p className="ent-sub">₪1,000,000 לעמוד · ₪1 לפיקסל · תשלום בהעברה בנקאית</p>
+        <BrandInquiry />
+      </section>}
+      <p className="brand-meta tiny muted">{brand.demo ? "עמוד לדוגמה בלבד — " : ""}עמוד זה שייך במלואו ל-{brand.name} — 1,000,000 פיקסלים של שטח פרסום ארגוני ב"מי ומה"{brand.published_at ? ` · מאז ${fmtDate(brand.published_at)}` : ""}.</p>
+      <section className="cat-seo">
+        {others.length > 0 && <>
+          <span className="tiny muted">מותגים נוספים עם עמוד מיליון:</span>
+          <div className="cat-links">
+            {others.map((b) => <a key={b.id} href={brandPath(b)} className="cat-link" onClick={(e) => { e.preventDefault(); onBrand?.(b); }}>🏢 {b.name}</a>)}
+          </div>
+        </>}
+        <div className="cat-links" style={{ marginTop: 10 }}>
+          <a href="/" className="cat-link home-link" onClick={(e) => { e.preventDefault(); onHome?.(); }}>🧩 לכל שטחי הפרסום</a>
+          <a href="/#enterprise" className="cat-link" onClick={(e) => { e.preventDefault(); onHome?.(); setTimeout(() => document.getElementById("enterprise")?.scrollIntoView({ behavior: "smooth" }), 200); }}>🏢 גם לחברה שלכם מגיע עמוד מיליון</a>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function Home({ ads, brands = [], onPick, onBrand }) {
   const live = ads.filter((a) => a.status === "live");
+  const liveBrands = brands.filter((b) => b.status === "live");
   const totalSold = live.reduce((s, a) => s + a.pixels, 0);
   const SITE_PIXELS = CATEGORIES.length * CATEGORY_PIXELS;
   const sitePct = (totalSold / SITE_PIXELS) * 100;
@@ -734,6 +901,9 @@ function Home({ ads, onPick }) {
         <h1>תפסו את <span className="hl">שטח הפרסום</span> שלכם</h1>
         <p className="sub">מי שתופס מקום — מופיע ב"מי ומה" ונשאר בו לשנים. המקדימים תופסים את המקומות הטובים ביותר, השאר תופסים את מה שנשאר. שטח פרסום החל מ-₪100 (100 פיקסלים).</p>
         <p className="sub join">הצטרפו למשחק — מספר המקומות מוגבל, כל הקודם זוכה. 🏆</p>
+        <button className="ent-hero-btn" onClick={() => document.getElementById("enterprise")?.scrollIntoView({ behavior: "smooth" })}>
+          🏢 דף מיליון למותגים ← עמוד שלם על שם החברה שלכם
+        </button>
         <button className="story-teaser" onClick={() => document.getElementById("story")?.scrollIntoView({ behavior: "smooth" })}>
           💜 ב-2005 סטודנט מכר מיליון פיקסלים ונכנס להיסטוריה. עכשיו תורנו — אני מיכל, וזה הסיפור שלי ← לסיפור המלא
         </button>
@@ -753,6 +923,22 @@ function Home({ ads, onPick }) {
         )}
       </section>
 
+      <section className="brands-strip" aria-label="מותגים עם עמוד מיליון">
+          <p className="tiny muted">🏢 מותגים שתפסו עמוד מיליון שלם</p>
+          <div className="brands-row">
+            {liveBrands.length === 0 && (
+              <a className="brand-chip brand-empty" href={brandPath(DEMO_BRAND)} onClick={(e) => { e.preventDefault(); onBrand?.(DEMO_BRAND); }}>
+                <span>המקום הזה שמור למותג הראשון · לצפייה בדוגמה ←</span>
+              </a>
+            )}
+            {liveBrands.map((b) => (
+              <a key={b.id} className="brand-chip" href={brandPath(b)} title={b.name} onClick={(e) => { e.preventDefault(); onBrand?.(b); }}>
+                {b.logo_url ? <img src={b.logo_url} alt={b.name} /> : <span>{b.name}</span>}
+              </a>
+            ))}
+          </div>
+        </section>
+
       {GROUPS.map((g) => (
         <section className="cats-group" key={g.id}>
           <div className="group-head">
@@ -764,6 +950,21 @@ function Home({ ads, onPick }) {
           </div>
         </section>
       ))}
+
+      <section className="enterprise" id="enterprise">
+        <p className="eyebrow">🏢 לחברות ולמותגים גדולים</p>
+        <h2>עמוד מיליון שלם — משלכם</h2>
+        <p className="ent-sub">חברה גדולה לא תופסת משבצת — היא פותחת עמוד מיליון משלה: 1,000,000 פיקסלים של שטח פרסום ארגוני, בעיצוב שלכם, עם הלוגו בשורת המותגים בעמוד הבית של "מי ומה" — לשנים.</p>
+        <div className="ent-price"><b>₪1,000,000</b><span>לעמוד שלם · ₪1 לפיקסל — אותו מחיר כמו כולם · תשלום אחד מראש בהעברה בנקאית</span></div>
+        <ul className="ent-list">
+          <li>🧩 עמוד שלם על שם המותג, בכתובת משלו ב-mevema.co.il</li>
+          <li>🏠 הלוגו בשורת המותגים בראש עמוד הבית</li>
+          <li>📜 תעודת בעלות ארגונית על עמוד מיליון</li>
+          <li>♾️ בתוקף ללא הגבלת זמן, מובטח מינימום 3 שנים</li>
+        </ul>
+        <a className="ent-demo-link" href={brandPath(DEMO_BRAND)} onClick={(e) => { e.preventDefault(); onBrand?.(DEMO_BRAND); }}>👁 לצפייה בדף מיליון לדוגמה</a>
+        <BrandInquiry />
+      </section>
 
       <section className="founders">
         <h2>🏆 קיר המייסדים</h2>
@@ -1056,7 +1257,7 @@ function SlotBuyModal({ slot, cat, session, ads, onClose, onDone }) {
       if (error) throw error;
       fetch("/api/notify-admin", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "new_ad", title: title.trim() || cat.name, category: cat.name,
-          pixels: slot.pixels.toLocaleString("he-IL"), price: nis(slot.pixels * PRICE), phone }) }).catch(() => {});
+          pixels: slot.pixels.toLocaleString("he-IL"), price: nis(slot.pixels * PRICE), phone, image: !!file }) }).catch(() => {});
       setSent(true);
     } catch (e) { console.error(e); alert("שגיאה: " + (e.message || "נסה שוב")); }
     finally { setBusy(false); }
@@ -1240,6 +1441,8 @@ function EditAd({ ad, onDone }) {
       let image_url = null;
       if (file) image_url = await uploadImage(await compressImage(file, ad.w, ad.h));
       else if (removeImg) image_url = ""; // מחרוזת ריקה = בקשה למחוק את התמונה
+      fetch("/api/notify-admin", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "edit_request", title: ad.title, phone: ad.phone, image: !!file }) }).catch(() => {});
       const { error } = await supabase.rpc("submit_ad_update", {
         p_ad_id: ad.id, p_title: titleChanged ? title.trim() : null,
         p_link: linkChanged ? link : null, p_image_url: image_url,
@@ -1323,13 +1526,16 @@ function Terms() {
       <h3>8. אין התחייבות לחשיפה או לתוצאות</h3>
       <p>מפעילת האתר אינה מתחייבת לכמות חשיפה, כניסות, הקלקות או פניות כלשהי הנובעת מהמודעה. החשיפה נובעת מעצם היותו של האתר פרויקט ייחודי, והיא עשויה להשתנות מעת לעת. רכישת שטח פרסום אינה מהווה הבטחה לתוצאה עסקית כלשהי.</p>
 
-      <h3>9. הגבלת אחריות</h3>
+      <h3>9. עמודי מותג (שטח פרסום ארגוני)</h3>
+      <p>האתר מציע לחברות ולמותגים "עמוד מיליון" — עמוד ייעודי בהיקף 1,000,000 פיקסלים במחיר של ₪1 לפיקסל (₪1,000,000 לעמוד, כולל מע"מ ככל שחל), הנמכר בהסכם נפרד ובתשלום אחד מראש בהעברה בנקאית, ולא דרך רכישת משבצות. עמוד מותג כולל הצגת לוגו בשורת המותגים בעמוד הבית, בסדר שנקבע על ידי מפעילת האתר לפי שיקול דעתה הבלעדי וללא התחייבות למיקום מסוים. כל הוראות תנאים אלה — ובכלל זה סעיף 8 בדבר היעדר התחייבות לחשיפה או לתוצאות — חלות על עמודי מותג במלואן. תוקף עמוד מותג: ללא הגבלת זמן, מובטח מינימום 3 שנים ממועד הפרסום.</p>
+
+      <h3>10. הגבלת אחריות</h3>
       <p>השירות ניתן כפי שהוא ("AS IS"). מפעילת האתר לא תישא באחריות לכל נזק ישיר או עקיף שייגרם משימוש באתר או מהסתמכות על מודעות המופיעות בו.</p>
 
-      <h3>10. שיפוט</h3>
+      <h3>11. שיפוט</h3>
       <p>על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים בישראל.</p>
 
-      <h3>11. יצירת קשר</h3>
+      <h3>12. יצירת קשר</h3>
       <p>בכל שאלה ניתן לפנות אל {CONTACT.owner}: <a href={`mailto:${CONTACT.email}`} dir="ltr">{CONTACT.email}</a> · <span dir="ltr">{CONTACT.phone}</span>.</p>
 
     </main>
@@ -1395,7 +1601,7 @@ function Contact() {
 }
 
 /* ----------------------- ניהול ----------------------- */
-function Admin({ session, isAdmin, onAuth }) {
+function Admin({ session, isAdmin, onAuth, brands = [], onChange, onBrand }) {
   if (!session) {
     return <main className="center pad"><div className="card narrow center">
       <h3>אזור ניהול</h3><p className="muted">צריך להתחבר עם חשבון המנהלת.</p>
@@ -1406,7 +1612,7 @@ function Admin({ session, isAdmin, onAuth }) {
       <h3>אין הרשאת ניהול</h3>
       <p className="muted">החשבון הזה אינו מוגדר כמנהל. ודאי שהאימייל קיים בטבלת admins ב-Supabase.</p></div></main>;
   }
-  return <AdminQueue />;
+  return <AdminQueue brands={brands} onChange={onChange} onBrand={onBrand} />;
 }
 
 function AdminPwReset() {
@@ -1513,7 +1719,226 @@ function AdminMove({ a, allAds, onDone }) {
   );
 }
 
-function AdminQueue() {
+/* ניהול עמודי מותג — הוספה, עריכה, סדר תצוגה, פרסום */
+function AdminBrands({ brands = [], onChange, onBrand }) {
+  const [editing, setEditing] = useState(null); // null | {} (חדש) | מותג קיים
+  const [busy, setBusy] = useState(false);
+  const list = [...brands].filter((b) => b.status !== "removed").sort((a, b) => a.sort_order - b.sort_order);
+
+  const persistOrder = async (arr) => {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].sort_order !== (i + 1) * 10) await supabase.from("brand_pages").update({ sort_order: (i + 1) * 10 }).eq("id", arr[i].id);
+    }
+    onChange?.();
+  };
+  const move = (b, dir) => {
+    const i = list.findIndex((x) => x.id === b.id), j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    const arr = [...list]; [arr[i], arr[j]] = [arr[j], arr[i]];
+    persistOrder(arr);
+  };
+  const setStatus = async (b, status) => {
+    const extra = status === "live" && !b.published_at ? { published_at: new Date().toISOString() } : {};
+    const { error } = await supabase.from("brand_pages").update({ status, ...extra }).eq("id", b.id);
+    if (error) return alert("שגיאה: " + error.message);
+    onChange?.();
+  };
+  const del = async (b) => {
+    if (!confirm(`למחוק לצמיתות את עמוד המותג "${b.name}"?`)) return;
+    await deleteImageByUrl(b.logo_url); await deleteImageByUrl(b.hero_url);
+    await supabase.from("brand_pages").delete().eq("id", b.id);
+    onChange?.();
+  };
+  const cert = (b) => downloadCertificate({ title: b.name, slug: b.slug, x: 0, published_at: b.published_at, created_at: b.created_at, pixels: 1_000_000, w: 1000, h: 1000 }, null, null, true);
+
+  if (editing) return <BrandForm brand={editing} busy={busy} setBusy={setBusy} onDone={() => { setEditing(null); onChange?.(); }} onCancel={() => setEditing(null)} />;
+  return (
+    <div className="brands-admin">
+      <div className="card">
+        <h3>🏢 עמודי מותג — עמוד מיליון שלם לחברות</h3>
+        <p className="tiny muted">כל מותג מקבל עמוד משלו בכתובת mevema.co.il/מותג/&lt;שם&gt; והלוגו שלו בשורת המותגים בעמוד הבית. הסדר כאן = הסדר בעמוד הבית (▲▼). רק מותגים במצב "באוויר" מוצגים לגולשים.</p>
+        <button className="cta go" onClick={() => setEditing({})}>+ הוספת עמוד מותג</button>
+      </div>
+      {list.length === 0 && <div className="card narrow center"><p className="muted">עדיין אין עמודי מותג.</p></div>}
+      <div className="queue">
+        {list.map((b, i) => (
+          <div className="qcard brand-card" key={b.id}>
+            <div className="qimg brand-thumb">{b.logo_url ? <img src={b.logo_url} alt="" /> : <span className="ad-lbl">{b.name}</span>}</div>
+            <div className="qbody">
+              <b>{i + 1}. {b.name} <span className={"tiny " + (b.status === "live" ? "ok-text" : "muted")}>· {b.status === "live" ? "באוויר" : "טיוטה"}</span></b>
+              <span className="tiny muted" dir="ltr">/מותג/{b.slug}</span>
+              {b.tagline && <span className="tiny">{b.tagline}</span>}
+              {b.link && <a className="qlink" href={b.link} target="_blank" rel="noopener noreferrer nofollow" dir="ltr">{b.link}</a>}
+              <span className="tiny muted">נוצר: {fmtDate(b.created_at)}{b.published_at ? ` · פורסם: ${fmtDate(b.published_at)}` : ""} · {b.hero_url ? "יש תמונת עמוד" : "אין תמונת עמוד"}</span>
+            </div>
+            <div className="qact">
+              <button className="ok" onClick={() => move(b, -1)} disabled={i === 0} title="להזיז למעלה">▲</button>
+              <button className="ok" onClick={() => move(b, 1)} disabled={i === list.length - 1} title="להזיז למטה">▼</button>
+              <button className="ok" onClick={() => setEditing(b)}>✏️ עריכה</button>
+              {b.status === "live"
+                ? <button className="no" onClick={() => setStatus(b, "draft")}>הסתר</button>
+                : <button className="ok" onClick={() => setStatus(b, "live")}>🚀 פרסם</button>}
+              <button className="ok" onClick={() => onBrand?.(b)}>👁 פתח עמוד</button>
+              <button className="ok" onClick={() => cert(b)}>📜 תעודה</button>
+              <button className="no" onClick={() => del(b)}>🗑 מחק</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BrandForm({ brand, busy, setBusy, onDone, onCancel }) {
+  const isNew = !brand.id;
+  const [f, setF] = useState({ name: brand.name || "", slug: brand.slug || "", tagline: brand.tagline || "", description: brand.description || "", link: brand.link || "" });
+  const [logo, setLogo] = useState(null);
+  const [hero, setHero] = useState(null);
+  const [err, setErr] = useState("");
+  const set = (k) => (e) => {
+    const v = e.target.value;
+    setF((p) => (k === "name" && isNew && (!p.slug || p.slug === slugify(p.name)) ? { ...p, name: v, slug: slugify(v) } : { ...p, [k]: v }));
+  };
+  const save = async () => {
+    setErr("");
+    if (!f.name.trim()) return setErr("צריך שם מותג.");
+    const slug = slugify(f.slug || f.name);
+    if (!slug) return setErr("כתובת לא תקינה.");
+    if (f.link && !checkLink(f.link).ok) return setErr("הקישור אינו תקין.");
+    setBusy(true);
+    try {
+      const row = { name: f.name.trim(), slug, tagline: f.tagline.trim() || null, description: f.description.trim() || null, link: f.link.trim() || null };
+      if (logo) row.logo_url = await uploadFile(await resizeImage(logo, 600), "logo");
+      if (hero) row.hero_url = await uploadFile(await resizeImage(hero, 1600), "hero");
+      const q = isNew ? supabase.from("brand_pages").insert(row) : supabase.from("brand_pages").update(row).eq("id", brand.id);
+      const { error } = await q;
+      if (error) throw error;
+      if (!isNew && logo && brand.logo_url) await deleteImageByUrl(brand.logo_url);
+      if (!isNew && hero && brand.hero_url) await deleteImageByUrl(brand.hero_url);
+      onDone();
+    } catch (e) {
+      setErr(e.message?.includes("duplicate") ? "כבר קיים מותג עם הכתובת הזו — שנו את הכתובת." : "שגיאה: " + (e.message || "נסו שוב"));
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="card">
+      <h3>{isNew ? "🏢 עמוד מותג חדש" : `✏️ עריכת ${brand.name}`}</h3>
+      <label className="fl">שם המותג<input value={f.name} onChange={set("name")} placeholder="לדוגמה: אסם" /></label>
+      <label className="fl">כתובת העמוד (אחרי /מותג/)<input value={f.slug} onChange={set("slug")} placeholder="אסם" dir="ltr" /></label>
+      <label className="fl">שורת תיאור קצרה<input value={f.tagline} onChange={set("tagline")} placeholder="לדוגמה: הטעם של הבית מאז 1942" /></label>
+      <label className="fl">טקסט לעמוד (לא חובה)<textarea rows={4} value={f.description} onChange={set("description")} placeholder="כמה משפטים על המותג — יופיעו מתחת לתמונה" /></label>
+      <label className="fl">קישור לאתר המותג<input value={f.link} onChange={set("link")} placeholder="https://" dir="ltr" /></label>
+      <div className="row2">
+        <label className="fl">לוגו (PNG שקוף מומלץ){brand.logo_url && !logo && <img className="mini-prev" src={brand.logo_url} alt="" />}
+          <input type="file" accept="image/*" onChange={(e) => setLogo(e.target.files?.[0] || null)} /></label>
+        <label className="fl">תמונת העמוד (רוחבית, עד 1600px){brand.hero_url && !hero && <img className="mini-prev" src={brand.hero_url} alt="" />}
+          <input type="file" accept="image/*" onChange={(e) => setHero(e.target.files?.[0] || null)} /></label>
+      </div>
+      {err && <div className="warn err">{err}</div>}
+      <div className="row2">
+        <button className="btn-line ghost2" onClick={onCancel} disabled={busy}>ביטול</button>
+        <button className="cta go" onClick={save} disabled={busy}>{busy ? "שומר..." : isNew ? "יצירת העמוד (כטיוטה)" : "שמירת שינויים"}</button>
+      </div>
+      {isNew && <p className="tiny muted">אחרי היצירה: "👁 פתח עמוד" כדי לראות איך זה נראה, ואז "🚀 פרסם" כדי להעלות לאוויר.</p>}
+    </div>
+  );
+}
+
+/* גיבוי ושחזור — ZIP מלא כולל תמונות, צילומי מצב יומיים, ושחזור מקובץ */
+function AdminBackup({ ads, brands = [], onRestored, downloadJson }) {
+  const [prog, setProg] = useState(null);
+  const [snaps, setSnaps] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    supabase.from("ad_backups").select("id,created_at,ads_count").order("created_at", { ascending: false }).limit(30)
+      .then(({ data }) => setSnaps(data || []));
+  }, []);
+
+  const fullZip = async () => {
+    const enc = new TextEncoder();
+    const names = new Map();
+    for (const a of ads) for (const u of [a.image_url, a.pending_image_url]) { const p = u && u.split(`/${BUCKET}/`)[1]; if (p) names.set(p, u); }
+    for (const b of brands) for (const u of [b.logo_url, b.hero_url]) { const p = u && u.split(`/${BUCKET}/`)[1]; if (p) names.set(p, u); }
+    const files = [{ name: "backup.json", data: enc.encode(JSON.stringify({ exported_at: new Date().toISOString(), site: "mevema.co.il", ads, brands }, null, 2)) }];
+    files.push({ name: "README.txt", data: enc.encode("גיבוי מלא של מי ומה.\nbackup.json — כל המודעות ועמודי המותג.\nimages/ — כל התמונות בשמות המקוריים שלהן.\nשחזור: בניהול → גיבוי → ♻️ שחזור מקובץ (backup.json). אם חסרות תמונות באחסון — להעלות את תיקיית images לדלי ad-images ב-Supabase באותם שמות.\n") });
+    let i = 0, failed = 0;
+    for (const [p, u] of names) {
+      i++; setProg(`מוריד תמונה ${i} מתוך ${names.size}...`);
+      try { const r = await fetch(u); if (!r.ok) throw new Error(); files.push({ name: "images/" + p, data: new Uint8Array(await r.arrayBuffer()) }); }
+      catch { failed++; }
+    }
+    setProg("אורז קובץ ZIP...");
+    saveBlob(makeZip(files), `mevema-full-backup-${new Date().toISOString().slice(0, 10)}.zip`);
+    setProg(null);
+    setMsg({ ok: `הגיבוי ירד: ${ads.length} מודעות, ${brands.length} מותגים, ${names.size - failed} תמונות${failed ? ` (${failed} תמונות לא נמצאו)` : ""}.` });
+  };
+
+  const restoreRows = async (rows, brandRows) => {
+    let ok = 0, bad = 0;
+    for (let i = 0; i < rows.length; i += 50) {
+      const chunk = rows.slice(i, i + 50);
+      const { error } = await supabase.from("ads").upsert(chunk, { onConflict: "id" });
+      if (error) { for (const r of chunk) { const { error: e2 } = await supabase.from("ads").upsert(r, { onConflict: "id" }); if (e2) bad++; else ok++; } }
+      else ok += chunk.length;
+    }
+    let bok = 0;
+    if (brandRows?.length) { const { error } = await supabase.from("brand_pages").upsert(brandRows, { onConflict: "id" }); if (!error) bok = brandRows.length; }
+    setMsg({ ok: `שוחזרו ${ok} מודעות${bok ? ` ו-${bok} מותגים` : ""}${bad ? `, ${bad} נכשלו` : ""}.` });
+    onRestored?.();
+  };
+  const restoreFile = async (e) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      const rows = j.ads || j.data || [];
+      if (!Array.isArray(rows) || !rows.length) return setMsg({ err: "הקובץ לא מכיל מודעות." });
+      if (!confirm(`לשחזר ${rows.length} מודעות מהקובץ? רשומות קיימות עם אותו מזהה יעודכנו, רשומות חסרות ייווצרו מחדש.`)) return;
+      await restoreRows(rows, j.brands);
+    } catch { setMsg({ err: "קובץ לא תקין." }); }
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  const restoreSnap = async (sn) => {
+    if (!confirm(`לשחזר את צילום המצב מ-${fmtDate(sn.created_at)} (${sn.ads_count} מודעות)?`)) return;
+    const { data, error } = await supabase.from("ad_backups").select("data").eq("id", sn.id).single();
+    if (error || !data) return setMsg({ err: "לא ניתן לטעון את צילום המצב." });
+    await restoreRows(data.data || []);
+  };
+
+  return (
+    <div className="backup-panel">
+      <div className="card">
+        <h3>📦 גיבוי</h3>
+        <p className="tiny muted">מומלץ: גיבוי מלא פעם בשבוע ושמירה בדרייב/במחשב. ה-ZIP כולל את כל הנתונים וכל התמונות בשמות המקוריים.</p>
+        <div className="row2">
+          <button className="cta go" onClick={fullZip} disabled={!!prog}>{prog || "🗜 גיבוי מלא כולל תמונות (ZIP)"}</button>
+          <button className="btn-line" onClick={downloadJson}>📄 גיבוי נתונים בלבד (JSON)</button>
+        </div>
+      </div>
+      <div className="card">
+        <h3>♻️ שחזור</h3>
+        <p className="tiny muted">משחזרים מקובץ backup.json (מתוך ה-ZIP או מהגיבוי המהיר). המערכת מעדכנת רשומות קיימות ומחזירה רשומות שנמחקו. תמונות שנמחקו מהאחסון מוחזרות ידנית מתיקיית images שב-ZIP.</p>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={restoreFile} />
+      </div>
+      <div className="card">
+        <h3>🕒 צילומי מצב אוטומטיים (כל לילה ב-03:00)</h3>
+        <p className="tiny muted">השרת שומר כל לילה עותק של כל המודעות ומעתיק כל תמונה חדשה לדלי גיבוי נפרד. נשמרים 90 הצילומים האחרונים.</p>
+        {snaps === null ? <div className="spin" /> : snaps.length === 0
+          ? <div className="warn">עדיין אין צילומי מצב — הראשון ייווצר בלילה הקרוב (בתנאי שהוגדר SUPABASE_SERVICE_KEY ב-Vercel והורץ ה-SQL).</div>
+          : <div className="snap-list">{snaps.map((sn) => (
+            <div className="snap-row" key={sn.id}>
+              <span>{new Date(sn.created_at).toLocaleString("he-IL")} · {sn.ads_count} מודעות</span>
+              <button className="btn-line" onClick={() => restoreSnap(sn)}>שחזר</button>
+            </div>))}</div>}
+      </div>
+      {msg?.ok && <div className="warn ok-box">{msg.ok}</div>}
+      {msg?.err && <div className="warn err">{msg.err}</div>}
+    </div>
+  );
+}
+
+function AdminQueue({ brands = [], onChange, onBrand }) {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("pending");
@@ -1546,7 +1971,7 @@ function AdminQueue() {
   };
   // גיבוי מלא: מוריד קובץ עם כל המודעות (כולל קישורי תמונות) — לשמירה בטוחה
   const downloadBackup = () => {
-    const backup = { exported_at: new Date().toISOString(), site: "mevema.co.il", ads_count: ads.length, ads };
+    const backup = { exported_at: new Date().toISOString(), site: "mevema.co.il", ads_count: ads.length, ads, brands };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const u = URL.createObjectURL(blob), l = document.createElement("a");
     const d = new Date().toISOString().slice(0, 10);
@@ -1597,13 +2022,14 @@ function AdminQueue() {
     removed: ads.filter((a) => a.status === "removed").length,
   };
   const list = tab === "updates" ? ads.filter(isUpd) : ads.filter((a) => a.status === tab);
-  const TABS = [["pending", "לבדיקה"], ["awaiting_payment", "ממתין לתשלום"], ["updates", "עדכונים"], ["live", "באוויר"], ["removed", "הוסרו"]];
+  counts.brands = brands.filter((b) => b.status !== "removed").length;
+  const TABS = [["pending", "לבדיקה"], ["awaiting_payment", "ממתין לתשלום"], ["updates", "עדכונים"], ["live", "באוויר"], ["removed", "הוסרו"], ["brands", "🏢 מותגים"], ["backup", "📦 גיבוי"]];
 
   return (
     <main className="admin">
       <div className="board-head">
         <h2>אזור ניהול</h2>
-        <button className="backup-btn" onClick={downloadBackup} title="מוריד קובץ עם כל נתוני המודעות">📦 גיבוי נתונים</button>
+        <button className="backup-btn" onClick={() => setTab("backup")} title="גיבוי ושחזור">📦 גיבוי ושחזור</button>
       </div>
       <AdminPwReset />
       <div className="seg wide scroll">
@@ -1612,7 +2038,9 @@ function AdminQueue() {
         ))}
       </div>
 
-      {loading ? <div className="center pad"><div className="spin" /></div>
+      {tab === "brands" ? <AdminBrands brands={brands} onChange={onChange} onBrand={onBrand} />
+        : tab === "backup" ? <AdminBackup ads={ads} brands={brands} onRestored={() => { load(); onChange?.(); }} downloadJson={downloadBackup} />
+        : loading ? <div className="center pad"><div className="spin" /></div>
         : list.length === 0 ? <div className="card narrow center"><p className="muted">אין מודעות כאן 🎉</p></div>
         : tab === "updates" ? (
           <div className="queue">{list.map((a) => {

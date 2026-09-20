@@ -156,3 +156,45 @@ begin
 end $$;
 revoke execute on function public.system_reset_password(text, text) from public, anon, authenticated;
 grant execute on function public.system_reset_password(text, text) to service_role;
+
+-- ===== גיבוי אוטומטי יומי (Vercel Cron → /api/backup-snapshot) =====
+create table if not exists public.ad_backups (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  ads_count int not null default 0,
+  data jsonb not null
+);
+alter table public.ad_backups enable row level security;
+drop policy if exists "admin read backups" on public.ad_backups;
+create policy "admin read backups" on public.ad_backups for select to authenticated using (public.is_admin());
+-- כתיבה: רק השרת (service_role) — אין מדיניות לכתיבה
+-- דלי גיבוי לתמונות (עותק נפרד של כל תמונה שהועלתה)
+insert into storage.buckets (id, name, public) values ('ad-images-backup', 'ad-images-backup', false)
+on conflict (id) do nothing;
+
+-- ===== עמודי מותג — "עמוד מיליון שלם" לחברות =====
+create table if not exists public.brand_pages (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text not null,
+  slug text not null unique,
+  tagline text,
+  description text,
+  logo_url text,
+  hero_url text,
+  link text,
+  sort_order int not null default 100,
+  status text not null default 'draft' check (status in ('draft','live','removed')),
+  published_at timestamptz
+);
+alter table public.brand_pages enable row level security;
+drop policy if exists "public read live brands" on public.brand_pages;
+create policy "public read live brands" on public.brand_pages for select to anon, authenticated using (status = 'live' or public.is_admin());
+drop policy if exists "admin write brands" on public.brand_pages;
+create policy "admin write brands" on public.brand_pages for all to authenticated using (public.is_admin()) with check (public.is_admin());
+grant select on public.brand_pages to anon, authenticated;
+grant insert, update, delete on public.brand_pages to authenticated;
+
+-- שחזור מגיבוי: המנהלת רשאית להוסיף/לעדכן מודעות של כל משתמש
+drop policy if exists "admin insert" on public.ads;
+create policy "admin insert" on public.ads for insert to authenticated with check (public.is_admin());

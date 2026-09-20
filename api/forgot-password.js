@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-  const GA_INSTANCE = process.env.GREEN_API_INSTANCE;
+  const GA_INSTANCE = process.env.GREEN_API_INSTANCE_ID || process.env.GREEN_API_INSTANCE;
   const GA_TOKEN = process.env.GREEN_API_TOKEN;
   if (!SUPABASE_URL || !SERVICE_KEY || !GA_INSTANCE || !GA_TOKEN)
     return res.status(500).json({ error: "not_configured" });
