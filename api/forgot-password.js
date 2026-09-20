@@ -48,6 +48,7 @@ export default async function handler(req, res) {
       method: "POST",
       body: JSON.stringify({ target_email: email, new_password: pw }),
     });
+    if (!rpc.ok) return res.status(500).json({ error: "rpc_missing" }); // ה-SQL של שחזור הסיסמה לא הורץ
     const found = await rpc.json();
 
     // רישום הניסיון להגבלת הקצב
