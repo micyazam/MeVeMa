@@ -457,3 +457,5 @@ a.cat,a.f-chip,a.catchip{text-decoration:none}
 .agree{display:flex;gap:8px;align-items:flex-start;margin:8px 0 4px;line-height:1.5}
 .agree input{margin-top:3px;width:16px;height:16px;flex:0 0 auto}
 .agree a{color:var(--accent);font-weight:700}
+.about-brand{list-style:none;padding:0;margin:0 0 12px}
+.about-brand li{margin-bottom:6px}

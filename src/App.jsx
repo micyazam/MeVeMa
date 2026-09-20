@@ -453,7 +453,7 @@ export default function App() {
       {loading ? <div className="center pad"><div className="spin" /></div>
         : view === "reset" ? <ResetPassword onDone={() => setView("home")} />
         : view === "auth" ? <AuthPage onAuthed={() => setView("account")} />
-        : view === "about" ? <About onPickCat={nav.onPickCat} />
+        : view === "about" ? <About onPickCat={nav.onPickCat} onBrand={nav.onBrand} onHome={nav.onHome} />
         : view === "accessibility" ? <Accessibility />
         : view === "terms" ? <Terms />
         : view === "privacy" ? <Privacy />
@@ -749,7 +749,7 @@ function ResetPassword({ onDone }) {
 /* ----------------------- בית ----------------------- */
 
 /* ----------------------- עמוד אודות ----------------------- */
-function About({ onPickCat }) {
+function About({ onPickCat, onBrand, onHome }) {
   return (
     <main>
       <section className="about">
@@ -763,6 +763,20 @@ function About({ onPickCat }) {
           <li><b>מעלים תמונה, כותרת וקישור</b> — וממתינים לאישור קצר.</li>
           <li><b>משלמים בתשלום מאובטח (Grow)</b> — והשטח שלכם עולה לאוויר, עם תעודת בעלות דיגיטלית להורדה.</li>
         </ol>
+
+        <h3>🏢 דף מיליון למותגים — עמוד שלם על שם החברה</h3>
+        <p>חברה או מותג גדול לא תופסים משבצת — הם פותחים <b>עמוד מיליון משלהם</b>: עמוד רגיל של "מי ומה" עם אותן משבצות ואותם 1,000,000 פיקסלים, רק שכולו שייך למותג אחד. מנהל/ת המותג מעלה תמונות וקישורים לכל משבצת שרוצה, מתי שרוצה, ומחליף/ה אותם בכל עת — בלי תשלום על כל משבצת, כי העמוד כולו שולם מראש.</p>
+        <ul className="about-steps about-brand">
+          <li>🧩 עמוד שלם על שם המותג, בכתובת משלו: mevema.co.il/מותג/&lt;שם&gt;</li>
+          <li>🏠 הלוגו בשורת המותגים בראש עמוד הבית ובתפריט הקטגוריות</li>
+          <li>📜 תעודת בעלות ארגונית על עמוד מיליון</li>
+          <li>♾️ בתוקף ללא הגבלת זמן, מובטח מינימום 3 שנים</li>
+          <li>💰 <b>₪1,000,000 לעמוד</b> — ₪1 לפיקסל, אותו מחיר כמו כולם · תשלום אחד מראש בהעברה בנקאית</li>
+        </ul>
+        <div className="cat-links">
+          <a href={brandPath(DEMO_BRAND)} className="cat-link home-link" onClick={(e) => { e.preventDefault(); onBrand?.(DEMO_BRAND); }}>👁 לצפייה בדף מיליון לדוגמה</a>
+          <a href="/#enterprise" className="cat-link" onClick={(e) => { e.preventDefault(); onHome?.(); setTimeout(() => document.getElementById("enterprise")?.scrollIntoView({ behavior: "smooth" }), 200); }}>🏢 שליחת פנייה לדף מיליון</a>
+        </div>
 
         <h3>שאלות נפוצות</h3>
         <details><summary>כמה עולה שטח פרסום ב"מי ומה"?</summary>
