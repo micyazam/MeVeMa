@@ -349,6 +349,7 @@ export default function App() {
   const [cat, setCat] = useState(initialRoute.cat);
   const [brandSlug, setBrandSlug] = useState(initialRoute.brandSlug || null);
   const [brands, setBrands] = useState([]);
+  const [myAdIds, setMyAdIds] = useState(() => new Set());
   const [boardAds, setBoardAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
@@ -377,6 +378,12 @@ export default function App() {
     if (!session) { setIsAdmin(false); return; }
     supabase.rpc("is_admin").then(({ data }) => setIsAdmin(Boolean(data)));
   }, [session]);
+  // אילו מודעות שייכות למשתמש המחובר (כדי לאפשר עריכה מהלוח)
+  useEffect(() => {
+    if (!session) { setMyAdIds(new Set()); return; }
+    supabase.from("ads").select("id").eq("owner_id", session.user.id)
+      .then(({ data }) => setMyAdIds(new Set((data || []).map((r) => r.id))));
+  }, [session, boardAds]);
 
   // ניווט: מעדכן תצוגה + כתובת בדפדפן
   const go = useCallback((v, c = null, brand = null) => {
@@ -455,11 +462,11 @@ export default function App() {
         : view === "brand" ? (() => {
             const b = brands.find((x) => x.slug === brandSlug) || (brandSlug === DEMO_BRAND.slug ? DEMO_BRAND : null);
             if (!b) return <BrandNotFound onHome={nav.onHome} />;
-            return <Board key={b.id} cat={brandCat(b)} ads={b.demo ? [...boardAds, ...demoAds()] : boardAds} session={session} isAdmin={isAdmin}
+            return <Board key={b.id} cat={brandCat(b)} ads={b.demo ? [...boardAds, ...demoAds()] : boardAds} session={session} isAdmin={isAdmin} myAdIds={myAdIds}
               onChange={reload} onPickCat={nav.onPickCat} onBrand={nav.onBrand} onHome={nav.onHome} brands={brands} />;
           })()
         : view === "home" ? <Home ads={boardAds} brands={brands} onPick={nav.onPickCat} onBrand={nav.onBrand} />
-        : <Board cat={cat} ads={boardAds} session={session} onChange={reload} onPickCat={nav.onPickCat} />}
+        : <Board cat={cat} ads={boardAds} session={session} myAdIds={myAdIds} onChange={reload} onPickCat={nav.onPickCat} />}
     </Shell>
   );
 }
@@ -1067,7 +1074,8 @@ const MILESTONES = [
   { at: 1_000_000, name: "מיליון. היסטוריה. 👑" },
 ];
 /* ----------------------- שטחי פרסום בקטגוריה ----------------------- */
-function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmin, brands = [] }) {
+function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmin, brands = [], myAdIds = new Set() }) {
+  const [editingAd, setEditingAd] = useState(null); // מודעה של המשתמש שנבחרה לעריכה מהלוח
   const brand = cat.brand || null;
   const canEdit = !!brand && !brand.demo && (isAdmin || (!!session && !!brand.owner_id && session.user.id === brand.owner_id));
   const catAds = ads.filter((a) => a.category === cat.id);
@@ -1116,8 +1124,8 @@ function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmi
 
       <div className="board-tip-row">
         <p className="board-tip tiny muted">{brand
-          ? (canEdit ? "לוחצים על משבצת פנויה כדי להעלות תמונה וקישור. אפשר למלא כמה משבצות שרוצים — הכול כלול." : `כל 1,000,000 הפיקסלים בעמוד הזה שייכים ל-${brand.name}. רק מנהל/ת המותג מעלה לכאן תוכן.`)
-          : "לוחצים על שטח פרסום פנוי כדי לפרסם בו. השטחים הגדולים = יותר פיקסלים. גוללים למטה לעוד שטחים פנויים."}</p>
+          ? (canEdit ? "לוחצים על משבצת פנויה כדי להעלות תמונה וקישור, ועל משבצת מלאה (✏️) כדי להחליף או למחוק. הכול כלול — בלי תשלום." : `כל 1,000,000 הפיקסלים בעמוד הזה שייכים ל-${brand.name}. רק מנהל/ת המותג מעלה לכאן תוכן.`)
+          : (session ? "לוחצים על שטח פרסום פנוי כדי לפרסם בו. שטח שלכם מסומן ב-✏️ — לחיצה עליו פותחת עריכה של התמונה והקישור." : "לוחצים על שטח פרסום פנוי כדי לפרסם בו. השטחים הגדולים = יותר פיקסלים. גוללים למטה לעוד שטחים פנויים.")}</p>
       </div>
 
       <div className="flow-board">
@@ -1136,6 +1144,18 @@ function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmi
                     ? <span className="slot-lbl"><b>🔒 תפוס</b><span>ממתין לאישור</span></span>
                     : <span className="slot-lbl xs">🔒 תפוס</span>}
                 </div>
+              );
+            }
+            // מודעה של המשתמש המחובר (או של מנהל/ת המותג בעמוד המותג) — לחיצה פותחת עריכה
+            const mine = !String(ad.id).startsWith("demo-") && (myAdIds.has(ad.id) || (brand && canEdit));
+            if (mine) {
+              return (
+                <button key={slot.id} className="tile ad mine" title={`${ad.title} · לחצו לעריכה`}
+                  onClick={() => setEditingAd(ad)}
+                  style={{ gridColumn: `span ${cols}`, gridRow: `span ${rows}`, background: ad.image_url ? undefined : cat.color }}>
+                  {ad.image_url ? <img src={ad.image_url} alt={ad.title} /> : <span className="ad-lbl">{ad.title}</span>}
+                  <span className="edit-badge">✏️</span>
+                </button>
               );
             }
             // מודעה מאושרת (ממתינה לתשלום או באוויר) מוצגת בצבע מלא ועם קישור פעיל
@@ -1233,6 +1253,18 @@ function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmi
         <BrandSlotModal slot={buying} brand={brand} cat={cat}
           onClose={() => setBuying(null)} onDone={() => { setBuying(null); onChange(); }} />
       )}
+      {editingAd && brand && (
+        <BrandSlotModal slot={editingAd} existing={editingAd} brand={brand} cat={cat}
+          onClose={() => setEditingAd(null)} onDone={() => { setEditingAd(null); onChange(); }} />
+      )}
+      {editingAd && !brand && (
+        <div className="modal-bg" onClick={() => setEditingAd(null)}>
+          <div className="modal edit-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-x" onClick={() => setEditingAd(null)} aria-label="סגירה">×</button>
+            <EditAd ad={editingAd} inline onDone={() => { setEditingAd(null); onChange(); }} />
+          </div>
+        </div>
+      )}
       {buying && !brand && (
         <SlotBuyModal slot={buying} cat={cat} session={session} ads={catAds}
           onClose={() => setBuying(null)} onDone={() => { setBuying(null); onChange(); }} />
@@ -1242,9 +1274,9 @@ function Board({ cat, ads, session, onChange, onPickCat, onBrand, onHome, isAdmi
 }
 
 /* ----------------------- העלאת תוכן למשבצת בעמוד מותג (בלי תשלום) ----------------------- */
-function BrandSlotModal({ slot, brand, cat, onClose, onDone }) {
-  const [title, setTitle] = useState(brand.name);
-  const [link, setLink] = useState(brand.link || "https://");
+function BrandSlotModal({ slot, brand, cat, onClose, onDone, existing = null }) {
+  const [title, setTitle] = useState(existing?.title || brand.name);
+  const [link, setLink] = useState(existing?.link || brand.link || "https://");
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -1256,12 +1288,27 @@ function BrandSlotModal({ slot, brand, cat, onClose, onDone }) {
     if (f.size > 10 * 1024 * 1024) return setErr("עד 10MB.");
     setFile(f); setPreview(URL.createObjectURL(f));
   };
+  const remove = async () => {
+    if (!confirm("למחוק את התוכן מהמשבצת? המשבצת תחזור להיות פנויה.")) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("delete_brand_ad", { p_ad: existing.id });
+    setBusy(false);
+    if (error) return setErr("שגיאה: " + error.message);
+    await deleteImageByUrl(existing.image_url);
+    onDone();
+  };
   const submit = async () => {
-    if (!file) return setErr("צריך להעלות תמונה.");
+    if (!existing && !file) return setErr("צריך להעלות תמונה.");
     if (!linkCheck?.ok) return setErr("הקישור אינו תקין.");
     setBusy(true); setErr("");
     try {
-      const image_url = await uploadImage(await compressImage(file, slot.w, slot.h));
+      const image_url = file ? await uploadImage(await compressImage(file, slot.w, slot.h)) : null;
+      if (existing) {
+        const { error } = await supabase.rpc("update_brand_ad", { p_ad: existing.id, p_title: title.trim() || brand.name, p_link: link, p_image_url: image_url });
+        if (error) throw error;
+        if (image_url && existing.image_url) await deleteImageByUrl(existing.image_url);
+        return onDone();
+      }
       const { error } = await supabase.rpc("add_brand_ad", {
         p_brand: brand.id, p_x: slot.x, p_y: slot.y, p_w: slot.w, p_h: slot.h, p_pixels: slot.pixels,
         p_title: title.trim() || brand.name, p_link: link, p_image_url: image_url,
@@ -1275,18 +1322,20 @@ function BrandSlotModal({ slot, brand, cat, onClose, onDone }) {
   return (
     <div className="modal-bg" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>🏢 העלאת תוכן למשבצת · {slot.pixels.toLocaleString("he-IL")} פיקסלים</h3>
-        <p className="tiny muted">משבצת {slot.w}×{slot.h} בעמוד המיליון של {brand.name}. עולה לאוויר מיד — בלי תשלום.</p>
+        <h3>{existing ? "✏️ עריכת משבצת" : "🏢 העלאת תוכן למשבצת"} · {slot.pixels.toLocaleString("he-IL")} פיקסלים</h3>
+        <p className="tiny muted">משבצת {slot.w}×{slot.h} בעמוד המיליון של {brand.name}. {existing ? "השינוי נכנס לתוקף מיד." : "עולה לאוויר מיד — בלי תשלום."}</p>
+        {existing?.image_url && !preview && <div className="preview"><span className="tiny muted">התמונה הנוכחית:</span><img className="crop-preview" src={existing.image_url} alt="" style={{ aspectRatio: slot.w / slot.h }} /></div>}
         <label className="fl">כותרת<input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} /></label>
         <label className="fl">קישור<input value={link} onChange={(e) => setLink(e.target.value)} dir="ltr" /></label>
         {linkCheck && !linkCheck.ok && <div className="warn err">{linkCheck.flags?.join(" · ")}</div>}
-        <label className="fl">תמונה (יחס {slot.w}:{slot.h})<input type="file" accept="image/*" onChange={onFile} /></label>
+        <label className="fl">{existing ? "תמונה חדשה (לא חובה — להחלפה)" : "תמונה"} (יחס {slot.w}:{slot.h})<input type="file" accept="image/*" onChange={onFile} /></label>
         {preview && <div className="preview"><img className="crop-preview" src={preview} alt="" style={{ aspectRatio: slot.w / slot.h }} /></div>}
         {err && <div className="warn err">{err}</div>}
         <div className="row2">
           <button className="btn-line ghost2" onClick={onClose} disabled={busy}>ביטול</button>
-          <button className="cta go" onClick={submit} disabled={busy}>{busy ? "מעלה..." : "העלאה לאוויר ✓"}</button>
+          <button className="cta go" onClick={submit} disabled={busy}>{busy ? "שומר..." : existing ? "שמירת שינויים ✓" : "העלאה לאוויר ✓"}</button>
         </div>
+        {existing && <button className="btn-line danger" onClick={remove} disabled={busy}>🗑 מחיקת התוכן מהמשבצת</button>}
       </div>
     </div>
   );
@@ -1482,7 +1531,7 @@ function Account({ session, onChange, allAds }) {
 }
 
 /* ----------------------- עריכת מודעה (חוזר לאישור) ----------------------- */
-function EditAd({ ad, onDone }) {
+function EditAd({ ad, onDone, inline = false }) {
   const c = catById(ad.category);
   const [title, setTitle] = useState(ad.title || "");
   const [link, setLink] = useState(ad.link || "");
@@ -1536,7 +1585,7 @@ function EditAd({ ad, onDone }) {
   };
 
   if (done) return (
-    <main className="center pad"><div className="card narrow center">
+    <main className={inline ? "inline-edit" : "center pad"}><div className={inline ? "center" : "card narrow center"}>
       <h3>השינוי נשלח לאישור ✅</h3>
       <p className="muted">המודעה הנוכחית נשארת באתר עד שהשינוי יאושר.</p>
       <button className="cta dark" onClick={onDone}>חזרה</button>
@@ -1544,7 +1593,7 @@ function EditAd({ ad, onDone }) {
   );
 
   return (
-    <main className="board-wrap"><div className="card narrow">
+    <main className={inline ? "inline-edit" : "board-wrap"}><div className={inline ? "" : "card narrow"}>
       <h3>עריכת מודעה · {c?.icon} {c?.name}</h3>
       <p className="tiny muted">כל שינוי נשלח לאישור לפני שיתעדכן באתר.</p>
       {hasUpdate(ad) && <div className="warn">כבר יש שינוי שממתין לאישור — שליחה חדשה תחליף אותו.</div>}

@@ -236,3 +236,29 @@ begin
   return new_id;
 end $$;
 grant execute on function public.add_brand_ad(uuid, int, int, int, int, int, text, text, text) to authenticated;
+
+-- ===== עריכה/מחיקה של משבצת בעמוד מותג (v47) — מיידי, בלי אישור =====
+create or replace function public.update_brand_ad(p_ad uuid, p_title text, p_link text, p_image_url text)
+returns void language plpgsql security definer set search_path = public as $$
+declare a public.ads%rowtype; b public.brand_pages%rowtype;
+begin
+  select * into a from public.ads where id = p_ad;
+  if not found or a.category not like 'brand:%' then raise exception 'not found'; end if;
+  select * into b from public.brand_pages where id = substring(a.category from 7)::uuid;
+  if not (b.owner_id = auth.uid() or public.is_admin()) then raise exception 'not authorized'; end if;
+  update public.ads set title = coalesce(p_title, title), link = coalesce(p_link, link), image_url = coalesce(p_image_url, image_url)
+  where id = p_ad;
+end $$;
+grant execute on function public.update_brand_ad(uuid, text, text, text) to authenticated;
+
+create or replace function public.delete_brand_ad(p_ad uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare a public.ads%rowtype; b public.brand_pages%rowtype;
+begin
+  select * into a from public.ads where id = p_ad;
+  if not found or a.category not like 'brand:%' then raise exception 'not found'; end if;
+  select * into b from public.brand_pages where id = substring(a.category from 7)::uuid;
+  if not (b.owner_id = auth.uid() or public.is_admin()) then raise exception 'not authorized'; end if;
+  delete from public.ads where id = p_ad;
+end $$;
+grant execute on function public.delete_brand_ad(uuid) to authenticated;
